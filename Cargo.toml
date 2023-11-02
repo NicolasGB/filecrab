@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "filecrab"
+]
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
