@@ -6,3 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+
+tokio = { workspace = true }
+axum = { workspace = true }
+tower-http = { workspace = true }
+tower-cookies = { workspace = true }
+
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+anyhow = { workspace = true }
+
+rust-s3 = "0.34.0-rc3"
