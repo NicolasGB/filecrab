@@ -5,6 +5,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Debug, Serialize, Clone)]
 pub enum Error {
     ConfigMissingEnv(&'static str),
+    InvalidEnvType(&'static str),
 }
 
 impl core::fmt::Display for Error {

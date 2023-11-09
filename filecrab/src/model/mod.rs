@@ -1,13 +1,13 @@
 use axum::body::Bytes;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use tracing::debug;
 
 use crate::config::config;
 use s3::{creds::Credentials, Bucket, BucketConfiguration, Region};
 
 #[derive(Debug, Clone)]
 pub struct ModelManager {
-    bucket: Arc<Mutex<Bucket>>,
+    //Bucket is clonable as its references are behind an arc
+    bucket: Bucket,
 }
 
 impl ModelManager {
@@ -45,25 +45,18 @@ impl ModelManager {
             .bucket;
         }
 
-        ModelManager {
-            bucket: Arc::new(Mutex::new(bucket)),
-        }
+        ModelManager { bucket }
     }
 
     pub async fn upload(&self, file_name: &str, file: Bytes) -> anyhow::Result<()> {
-        let bucket = self.bucket.lock().await;
-
-        bucket.put_object(file_name, &file).await?;
+        self.bucket.put_object(file_name, &file).await?;
 
         Ok(())
     }
 
     pub async fn download(&self, file_name: &str) -> anyhow::Result<Bytes> {
-        let bucket = self.bucket.lock().await;
+        let r = self.bucket.get_object(file_name).await?;
 
-        let r = bucket.get_object(file_name).await?;
-
-        //TODO: 03/11/2023 - Think of a way of not copying
         Ok(Bytes::copy_from_slice(r.as_slice()))
     }
 }

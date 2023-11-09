@@ -20,6 +20,7 @@ pub struct Config {
     pub S3_ENDPOINT: String,
     pub S3_ACCESS_KEY: String,
     pub S3_SECRET_KEY: String,
+    pub MAXIMUM_FILE_SIZE: usize,
 }
 
 impl Config {
@@ -30,6 +31,10 @@ impl Config {
             S3_ENDPOINT: get_env("S3_ENDPOINT")?,
             S3_ACCESS_KEY: get_env("S3_ACCESS_KEY")?,
             S3_SECRET_KEY: get_env("S3_SECRET_KEY")?,
+            MAXIMUM_FILE_SIZE: get_env("MAXIMUM_FILE_SIZE")?.parse().map_err(|err| {
+                eprintln!("{err}");
+                Error::InvalidEnvType("MAXIMUM_FILE_SIZE")
+            })?,
         })
     }
 }

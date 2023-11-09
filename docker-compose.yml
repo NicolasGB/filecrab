@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio
+    command: "server /data --console-address \":9001\""
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      filecrab:
+
+  filecrab:
+    # build: .
+    image: filecrab
+    depends_on:
+      - minio
+    ports:
+      - "8080:8080"
+    environment:
+      RUST_LOG: "filecrab=trace"
+      S3_BUCKET_NAME: "filecrab"
+      S3_REGION:  "eu-west-1"
+      S3_ENDPOINT:  "http://minio:9000"
+      S3_ACCESS_KEY: "minioadmin"
+      S3_SECRET_KEY:  "minioadmin"
+      MAXIMUM_FILE_SIZE: "250"
+    networks:
+      filecrab:
+
+networks:
+  filecrab:
+
