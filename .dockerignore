@@ -2,4 +2,5 @@ target/
 .git/
 .cargo/
 docker-compose.yaml
+sdb-data/
 MAKEFILE

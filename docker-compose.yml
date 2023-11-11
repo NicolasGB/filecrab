@@ -4,9 +4,8 @@ services:
   minio:
     image: minio/minio
     command: "server /data --console-address \":9001\""
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+    env_file:
+      - .env
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -14,23 +13,34 @@ services:
       filecrab:
 
   filecrab:
-    # build: .
     image: filecrab
     depends_on:
       - minio
     ports:
       - "8080:8080"
-    environment:
-      RUST_LOG: "filecrab=trace"
-      S3_BUCKET_NAME: "filecrab"
-      S3_REGION:  "eu-west-1"
-      S3_ENDPOINT:  "http://minio:9000"
-      S3_ACCESS_KEY: "minioadmin"
-      S3_SECRET_KEY:  "minioadmin"
-      MAXIMUM_FILE_SIZE: "250"
+    env_file:
+      - .env
+    networks:
+      filecrab:
+
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    container_name: surrealdb
+    env_file:
+      - .env
+    restart: unless-stopped
+    command: start --user $DB_USER --pass $DB_PASSWORD --log $DB_LOG file:/data/database.db
+    user: root
+    ports:
+      - 8000:8000
+    volumes:
+      - ./sdb-data:/data
     networks:
       filecrab:
 
 networks:
   filecrab:
+
+volumes:
+  data:
 

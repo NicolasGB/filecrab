@@ -29,7 +29,10 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let mm = ModelManager::new().await;
+    let mm = ModelManager::new().await.map_err(|err| {
+        eprintln!("{err}");
+        Error::CouldNotInitModelManager
+    })?;
 
     // Build our middleware stack
     let middleware = ServiceBuilder::new()
@@ -74,7 +77,6 @@ async fn shutdown_signal() {
             .expect("failed to install Ctrl+c handler")
     };
 
-    #[cfg(unix)]
     let terminate = async {
         signal::unix::signal(signal::unix::SignalKind::terminate())
             .expect("failed to install signal handler")

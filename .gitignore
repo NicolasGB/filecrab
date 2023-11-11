@@ -1,2 +1,4 @@
 target/
 .cargo/
+sdb-data/
+.env

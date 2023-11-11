@@ -20,7 +20,14 @@ pub struct Config {
     pub S3_ENDPOINT: String,
     pub S3_ACCESS_KEY: String,
     pub S3_SECRET_KEY: String,
+
     pub MAXIMUM_FILE_SIZE: usize,
+
+    pub DB_HOST: String,
+    pub DB_NS: String,
+    pub DB_DBNAME: String,
+    pub DB_USER: String,
+    pub DB_PASSWORD: String,
 }
 
 impl Config {
@@ -35,6 +42,11 @@ impl Config {
                 eprintln!("{err}");
                 Error::InvalidEnvType("MAXIMUM_FILE_SIZE")
             })?,
+            DB_HOST: get_env("DB_HOST")?,
+            DB_NS: get_env("DB_NS")?,
+            DB_DBNAME: get_env("DB_DBNAME")?,
+            DB_USER: get_env("DB_USER")?,
+            DB_PASSWORD: get_env("DB_PASSWORD")?,
         })
     }
 }
