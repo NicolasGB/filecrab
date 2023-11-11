@@ -1,20 +1,29 @@
-From rust:alpine AS builder
+# chef image with cargo
+FROM rust:1.73 AS chef
+RUN cargo install cargo-chef
 
-WORKDIR /usr/src/filecrab
+# Planner layer
+FROM chef AS planner
+WORKDIR /app
+COPY . /app
+RUN cargo chef prepare --recipe-path recipe.json
 
-RUN apk add --no-cache \
-    openssh-client \
-    ca-certificates \
-    musl-dev \
-    tzdata \
-    openssl-dev 
+# Build layer
+From chef AS builder
+WORKDIR /app
+# Copy over the recipies
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY . /app
+# Build the application
+RUN cargo build --release 
 
-COPY . .
 
-RUN RUSTFLAGS=-Ctarget-feature=-crt-static cargo build --release && \
-    mv target/release/filecrab /filecrab && \
-    cargo clean
-EXPOSE 8080
+# RUNTIME IMAGE
+FROM gcr.io/distroless/cc-debian12 as runtime
+COPY --from=builder /app/target/release/filecrab /filecrab
+
 CMD ["/filecrab"]
 
 

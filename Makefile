@@ -8,4 +8,4 @@ down:
 
 .PHONY: build
 build:
-	docker build  --no-cache . -t filecrab
+	docker build  . -t filecrab
