@@ -14,6 +14,13 @@ pub enum ModelManagerError {
     NewDB(surrealdb::Error),
     SetUseNSandDb(surrealdb::Error),
     SignIn(surrealdb::Error),
+
+    //Assets
+    CreateAsset(surrealdb::Error),
+    AssetNotFound,
+
+    //Password
+    CouldNotHashPassword,
 }
 
 impl core::fmt::Display for ModelManagerError {

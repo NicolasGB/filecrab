@@ -10,8 +10,9 @@ use surrealdb::{
     Surreal,
 };
 
-use crate::config::config;
+use crate::config::{self, config};
 use s3::{creds::Credentials, Bucket, BucketConfiguration, Region};
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 pub struct ModelManager {

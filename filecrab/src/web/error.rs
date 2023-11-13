@@ -1,11 +1,16 @@
 use axum::{extract::multipart::MultipartError, http::StatusCode, response::IntoResponse};
 use tracing::error;
 
+use crate::model::ModelManagerError;
+
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
+    FilenameNotFound,
+    ModelManager(ModelManagerError),
     ErrorReadingMultipartFile(MultipartError),
+
     ErrorAnyhow(anyhow::Error),
 }
 
