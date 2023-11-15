@@ -16,6 +16,8 @@ pub enum Error {
     ErrorReadingMultipartFile(MultipartError),
 
     ErrorAnyhow(anyhow::Error),
+
+    Http(axum::http::Error),
 }
 
 impl core::fmt::Display for Error {

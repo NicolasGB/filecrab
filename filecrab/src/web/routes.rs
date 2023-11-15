@@ -1,19 +1,14 @@
 use axum::{
-    body::{Body, StreamBody},
+    body::StreamBody,
     debug_handler,
     extract::{DefaultBodyLimit, Multipart, Query, State},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
-use rand::{
-    distributions::{Alphanumeric, DistString},
-    prelude::Distribution,
-    Rng,
-};
+use rand::distributions::{Alphanumeric, DistString};
 use serde::{Deserialize, Serialize};
 use tower_http::limit::RequestBodyLimitLayer;
-use tracing::error;
 
 use crate::{
     config::config,
@@ -106,7 +101,7 @@ async fn download_handler(
     let response = Response::builder()
         .header("Content-Type", "application/octet-stream")
         .body(StreamBody::new(data.bytes))
-        .unwrap();
+        .map_err(Error::Http)?;
 
     Ok(response)
 }
