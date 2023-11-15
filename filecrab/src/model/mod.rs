@@ -15,7 +15,7 @@ use surrealdb::{
 use tokio_util::io::StreamReader;
 
 use crate::config::config;
-use s3::{creds::Credentials, Bucket, BucketConfiguration, Region};
+use s3::{creds::Credentials, request::ResponseDataStream, Bucket, BucketConfiguration, Region};
 use tracing::debug;
 
 #[derive(Debug, Clone)]
@@ -123,10 +123,10 @@ impl ModelManager {
         Ok(())
     }
 
-    pub async fn download(&self, file_name: &str) -> anyhow::Result<Bytes> {
-        let r = self.bucket.get_object(file_name).await?;
+    pub async fn download(&self, file_name: &str) -> anyhow::Result<ResponseDataStream> {
+        let r = self.bucket.get_object_stream(file_name).await?;
 
-        Ok(Bytes::copy_from_slice(r.as_slice()))
+        Ok(r)
     }
 
     pub fn db(&self) -> &Surreal<Client> {

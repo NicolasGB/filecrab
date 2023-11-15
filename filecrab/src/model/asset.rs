@@ -2,7 +2,6 @@ use argon2::Config;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
-use tokio::time::Instant;
 use tracing::debug;
 
 use super::error::{ModelManagerError, Result};
