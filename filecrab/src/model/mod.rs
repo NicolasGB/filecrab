@@ -1,16 +1,20 @@
 pub mod asset;
 mod error;
 
+use std::io;
+
 pub use error::{ModelManagerError, Result};
 
-use axum::body::Bytes;
+use axum::{body::Bytes, BoxError};
+use futures::{Stream, TryStreamExt};
 use surrealdb::{
     engine::remote::ws::{Client, Ws},
     opt::auth::Root,
     Surreal,
 };
+use tokio_util::io::StreamReader;
 
-use crate::config::{self, config};
+use crate::config::config;
 use s3::{creds::Credentials, Bucket, BucketConfiguration, Region};
 use tracing::debug;
 
@@ -98,8 +102,23 @@ impl ModelManager {
         Ok(bucket)
     }
 
-    pub async fn upload(&self, file_name: &str, file: Bytes) -> anyhow::Result<()> {
-        self.bucket.put_object(file_name, &file).await?;
+    pub async fn upload<S, E>(&self, file_name: &str, stream: S) -> anyhow::Result<()>
+    where
+        S: Stream<Item = std::result::Result<Bytes, E>>,
+        E: Into<BoxError>,
+    {
+        async {
+            //Convert the stream into an 'AsyncRead'
+            let body_with_io_error =
+                stream.map_err(|err| io::Error::new(io::ErrorKind::Other, err));
+            let body_reader = StreamReader::new(body_with_io_error);
+            futures::pin_mut!(body_reader);
+
+            self.bucket
+                .put_object_stream(&mut body_reader, file_name)
+                .await
+        }
+        .await?;
 
         Ok(())
     }

@@ -1,14 +1,19 @@
 use axum::{
-    body::{Body, Bytes},
+    body::Body,
     debug_handler,
     extract::{DefaultBodyLimit, Multipart, Query, State},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
+use rand::{
+    distributions::{Alphanumeric, DistString},
+    prelude::Distribution,
+    Rng,
+};
 use serde::{Deserialize, Serialize};
 use tower_http::limit::RequestBodyLimitLayer;
-use tracing::info;
+use tracing::error;
 
 use crate::{
     config::config,
@@ -40,24 +45,28 @@ async fn upload_handler(
     State(mm): State<ModelManager>,
     mut multipart: Multipart,
 ) -> Result<Json<CreateReponse>> {
-    let mut file_bytes: Option<Bytes> = None;
+    //First we generate an id which will be used for the file and the db
+    let token = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
 
-    let mut asset_to_create: AssetToCreate = AssetToCreate {
+    // Prepare asset to create
+    let mut asset_to_create = AssetToCreate {
         file_name: String::default(),
         password: None,
     };
 
+    //Parse multipart
+    let mut has_file = false;
     while let Some(field) = multipart.next_field().await? {
         let name = field.name().unwrap_or_default().to_string();
 
         match name.as_str() {
             "file" => {
+                has_file = true;
                 asset_to_create.file_name = field
                     .file_name()
                     .ok_or(Error::FilenameNotFound)?
                     .to_string();
-
-                file_bytes = Some(field.bytes().await?);
+                mm.upload(&token, field).await?;
             }
             "password" => {
                 let password_bytes = field.bytes().await?.to_vec();
@@ -71,18 +80,14 @@ async fn upload_handler(
     //If we got a file, time to upload buddy
     let mut resp = CreateReponse { id: "".to_string() };
 
-    if let Some(file_content) = file_bytes {
+    if has_file {
         //First we store the reference
-        let ass = Asset::create(mm.clone(), &mut asset_to_create)
+        let _ = Asset::create(mm.clone(), &token, &mut asset_to_create)
             .await
             .map_err(Error::ModelManager)?;
 
-        let id = ass.id.id.to_string();
-        //Then we upload
-        mm.upload(&id, file_content).await?;
-
         //copy the id to the the response
-        resp.id = id;
+        resp.id = token.to_string();
     }
 
     Ok(Json(resp))

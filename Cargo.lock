@@ -1008,6 +1008,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "futures",
  "rand",
  "rust-argon2",
  "rust-s3",
@@ -1016,6 +1017,7 @@ dependencies = [
  "serde_with",
  "surrealdb",
  "tokio",
+ "tokio-util",
  "tower",
  "tower-cookies",
  "tower-http",
