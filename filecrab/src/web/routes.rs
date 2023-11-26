@@ -25,7 +25,7 @@ pub fn routes(mm: ModelManager) -> Router {
         .route("/api/download", get(download_handler))
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(
-            config().MAXIMUM_FILE_SIZE * 1024 * 1024, /* 250mb */
+            config().MAXIMUM_FILE_SIZE * 1024 * 1024, /* in mb */
         ))
         .with_state(mm)
 }
@@ -57,10 +57,10 @@ async fn upload_handler(
         match name.as_str() {
             "file" => {
                 has_file = true;
-                asset_to_create.file_name = field
-                    .file_name()
-                    .ok_or(Error::FilenameNotFound)?
-                    .to_string();
+                asset_to_create.file_name =
+                    field.file_name().ok_or(Error::MissingFileName)?.to_string();
+
+                //Stream and upload the file
                 mm.upload(&token, field).await?;
             }
             "password" => {
