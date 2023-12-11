@@ -22,6 +22,7 @@ pub struct Config {
     pub S3_SECRET_KEY: String,
 
     pub MAXIMUM_FILE_SIZE: usize,
+    pub DEFAULT_EXPIRE_TIME: usize,
 
     pub DB_HOST: String,
     pub DB_NS: String,
@@ -38,10 +39,16 @@ impl Config {
             S3_ENDPOINT: get_env("S3_ENDPOINT")?,
             S3_ACCESS_KEY: get_env("S3_ACCESS_KEY")?,
             S3_SECRET_KEY: get_env("S3_SECRET_KEY")?,
+
             MAXIMUM_FILE_SIZE: get_env("MAXIMUM_FILE_SIZE")?.parse().map_err(|err| {
                 eprintln!("{err}");
                 Error::InvalidEnvType("MAXIMUM_FILE_SIZE")
             })?,
+            DEFAULT_EXPIRE_TIME: get_env("DEFAULT_EXPIRE_TIME")?.parse().map_err(|err| {
+                eprintln!("{err}");
+                Error::InvalidEnvType("DEFAULT_EXPIRE_TIME")
+            })?,
+
             DB_HOST: get_env("DB_HOST")?,
             DB_NS: get_env("DB_NS")?,
             DB_DBNAME: get_env("DB_DBNAME")?,

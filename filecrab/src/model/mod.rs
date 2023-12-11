@@ -133,6 +133,7 @@ impl ModelManager {
         &self.db
     }
 
+    #[allow(dead_code)]
     pub fn bucket(&self) -> &Bucket {
         &self.bucket
     }

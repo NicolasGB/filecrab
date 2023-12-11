@@ -47,6 +47,7 @@ async fn upload_handler(
     let mut asset_to_create = AssetToCreate {
         file_name: String::default(),
         password: None,
+        expire: None,
     };
 
     //Parse multipart
@@ -67,6 +68,15 @@ async fn upload_handler(
                 let password_bytes = field.bytes().await?.to_vec();
                 asset_to_create.password =
                     Some(String::from_utf8_lossy(&password_bytes).to_string());
+            }
+            "expire" => {
+                let expire_bytes = field.bytes().await?.to_vec();
+                let expire_string = String::from_utf8_lossy(&expire_bytes).to_string();
+                asset_to_create.expire = Some(
+                    expire_string
+                        .try_into()
+                        .map_err(|_| Error::InvalidExpireTime)?,
+                );
             }
             _ => {}
         }

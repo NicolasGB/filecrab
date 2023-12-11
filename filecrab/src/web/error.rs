@@ -11,6 +11,7 @@ pub enum Error {
 
     ModelManager(ModelManagerError),
     ReadingMultipartFile(MultipartError),
+    InvalidExpireTime,
 
     Anyhow(anyhow::Error),
 
