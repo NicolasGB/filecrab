@@ -12,8 +12,8 @@ use axum::{
     http::{header, HeaderValue},
     Router,
 };
-use std::{net::SocketAddr, time::Duration};
-use tokio::signal;
+use std::time::Duration;
+use tokio::{net::TcpListener, signal};
 use tower::ServiceBuilder;
 use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
@@ -46,7 +46,7 @@ async fn main() -> Result<()> {
                 .on_response(DefaultOnResponse::new().include_headers(true).latency_unit(LatencyUnit::Micros)),
         )
         // Box the response body so it implements `Default` which is required by axum
-        .map_response_body(axum::body::boxed)
+        .map_response_body(axum::body::Body::new)
         // Compress responses
         .compression()
         // Set a `Content-Type` if there isn't one already.
@@ -57,12 +57,13 @@ async fn main() -> Result<()> {
 
     let routes = Router::new().merge(routes(mm)).layer(middleware);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    let listener = TcpListener::bind("0.0.0.0:8080")
+        .await
+        .map_err(|_| Error::CouldNotInitTcpListener("Could not start the listener"))?;
 
-    info!("{:12} - {addr}", "LISTENING");
+    info!("{:12} - {:?}", "LISTENING", listener.local_addr());
 
-    axum::Server::bind(&addr)
-        .serve(routes.into_make_service())
+    axum::serve(listener, routes.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();

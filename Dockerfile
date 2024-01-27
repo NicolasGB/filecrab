@@ -1,5 +1,5 @@
 # chef image with cargo
-FROM rust:1.73 AS chef
+FROM rust:1.75 AS chef
 RUN cargo install cargo-chef
 
 # Planner layer

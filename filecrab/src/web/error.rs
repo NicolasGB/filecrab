@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{extract::multipart::MultipartError, http::StatusCode, response::IntoResponse};
 use tracing::error;
 
@@ -38,13 +40,13 @@ impl IntoResponse for Error {
                 )
                     .into_response();
 
-                response.extensions_mut().insert(self);
+                response.extensions_mut().insert(Arc::new(self));
                 response
             }
             _ => {
                 let mut response = StatusCode::INTERNAL_SERVER_ERROR.into_response();
 
-                response.extensions_mut().insert(self);
+                response.extensions_mut().insert(Arc::new(self));
 
                 response
             }

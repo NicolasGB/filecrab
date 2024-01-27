@@ -8,6 +8,7 @@ pub enum Error {
     InvalidEnvType(&'static str),
 
     CouldNotInitModelManager,
+    CouldNotInitTcpListener(&'static str),
 }
 
 impl core::fmt::Display for Error {

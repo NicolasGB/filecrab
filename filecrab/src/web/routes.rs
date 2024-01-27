@@ -1,5 +1,5 @@
 use axum::{
-    body::StreamBody,
+    body::Body,
     debug_handler,
     extract::{DefaultBodyLimit, Multipart, Query, State},
     response::{IntoResponse, Response},
@@ -103,6 +103,7 @@ struct DownloadParams {
     file: Option<String>,
 }
 
+#[debug_handler]
 async fn download_handler(
     State(mm): State<ModelManager>,
     Query(params): Query<DownloadParams>,
@@ -110,7 +111,7 @@ async fn download_handler(
     let data = mm.download(&params.file.unwrap_or_default()).await?;
     let response = Response::builder()
         .header("Content-Type", "application/octet-stream")
-        .body(StreamBody::new(data.bytes))
+        .body(Body::from_stream(data.bytes))
         .map_err(Error::Http)?;
 
     Ok(response)

@@ -16,7 +16,6 @@ use tokio_util::io::StreamReader;
 
 use crate::config::config;
 use s3::{creds::Credentials, request::ResponseDataStream, Bucket, BucketConfiguration, Region};
-use tracing::debug;
 
 #[derive(Debug, Clone)]
 pub struct ModelManager {
