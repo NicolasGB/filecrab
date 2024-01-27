@@ -16,7 +16,7 @@ use crate::{
         asset::{Asset, AssetToCreate},
         ModelManager,
     },
-    web::{Error, Result},
+    web::{middleware::api_key_mw, Error, Result},
 };
 
 pub fn routes(mm: ModelManager) -> Router {
@@ -27,6 +27,7 @@ pub fn routes(mm: ModelManager) -> Router {
         .layer(RequestBodyLimitLayer::new(
             config().MAXIMUM_FILE_SIZE * 1024 * 1024, /* in mb */
         ))
+        .layer(axum::middleware::from_fn(api_key_mw))
         .with_state(mm)
 }
 

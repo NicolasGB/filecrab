@@ -29,6 +29,8 @@ pub struct Config {
     pub DB_DBNAME: String,
     pub DB_USER: String,
     pub DB_PASSWORD: String,
+
+    pub API_KEY: String,
 }
 
 impl Config {
@@ -54,6 +56,7 @@ impl Config {
             DB_DBNAME: get_env("DB_DBNAME")?,
             DB_USER: get_env("DB_USER")?,
             DB_PASSWORD: get_env("DB_PASSWORD")?,
+            API_KEY: get_env("API_KEY")?,
         })
     }
 }
