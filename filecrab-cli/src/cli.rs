@@ -1,4 +1,7 @@
+use std::io::{self, Write};
+
 use anyhow::{bail, Ok};
+
 use clap::{Parser, Subcommand};
 use config::Config;
 use reqwest::Client;
@@ -36,7 +39,9 @@ pub struct Settings {
 }
 
 #[derive(Serialize, Deserialize)]
-struct UploadResponse {}
+struct UploadResponse {
+    pub id: String,
+}
 
 impl Cli {
     pub async fn run(mut self) -> anyhow::Result<()> {
@@ -113,13 +118,28 @@ impl Cli {
         // Send the request
         let resp = self
             .client
-            .post(url)
+            .post(format!("{url}/api/upload"))
             .header("filecrab-key", api_key)
             .multipart(form)
             .send()
             .await?
             .json::<UploadResponse>()
             .await?;
+
+        println!("The id to share is the following: {}", resp.id);
+
+        // Copy it to the clipboard
+        let mut clipboard = arboard::Clipboard::new()?;
+        clipboard.set_text(resp.id)?;
+        println!("It has now been copied to your clipboard, share it before the program exits!");
+
+        // Prompt the user to press Enter to exit
+        println!("Press Enter to exit...");
+        io::stdout().flush().unwrap();
+        let mut buffer = String::new();
+        io::stdin()
+            .read_line(&mut buffer)
+            .expect("Failed to read input");
 
         Ok(())
     }
