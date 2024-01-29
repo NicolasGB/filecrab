@@ -14,9 +14,13 @@ pub enum ModelManagerError {
     NewDB(surrealdb::Error),
     SetUseNSandDb(surrealdb::Error),
     SignIn(surrealdb::Error),
+    CouldNotDefineTable(surrealdb::Error),
+    CouldNotSetTableIndex(surrealdb::Error),
 
     //Assets
     CreateAsset(surrealdb::Error),
+    SearchAsset(surrealdb::Error),
+    TakeError(surrealdb::Error),
     AssetNotFound,
 
     //Password

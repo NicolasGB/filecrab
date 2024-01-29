@@ -56,6 +56,16 @@ impl ModelManager {
             .await
             .map_err(ModelManagerError::SetUseNSandDb)?;
 
+        // Create the assets table
+        db.query("DEFINE TABLE asset")
+            .await
+            .map_err(ModelManagerError::CouldNotDefineTable)?;
+
+        // Set the search index in memo_id asset column
+        db.query("DEFINE INDEX fileMemoIdUnique ON TABLE asset COLUMNS memo_id UNIQUE")
+            .await
+            .map_err(ModelManagerError::CouldNotSetTableIndex)?;
+
         Ok(db)
     }
 

@@ -49,6 +49,7 @@ async fn upload_handler(
         file_name: String::default(),
         password: None,
         expire: None,
+        memo_id: None,
     };
 
     //Parse multipart
@@ -88,12 +89,12 @@ async fn upload_handler(
 
     if has_file {
         //First we store the reference
-        let _ = Asset::create(mm.clone(), &token, &mut asset_to_create)
+        let asset = Asset::create(mm.clone(), &token, &mut asset_to_create)
             .await
             .map_err(Error::ModelManager)?;
 
         //copy the id to the the response
-        resp.id = token.to_string();
+        resp.id = asset.memo_id
     }
 
     Ok(Json(resp))
@@ -109,9 +110,16 @@ async fn download_handler(
     State(mm): State<ModelManager>,
     Query(params): Query<DownloadParams>,
 ) -> Result<impl IntoResponse> {
-    let data = mm.download(&params.file.unwrap_or_default()).await?;
+    // Read the asset from the database
+    let asset = Asset::read_by_memo_id(mm.clone(), &params.file.unwrap_or_default())
+        .await
+        .map_err(Error::ModelManager)?;
+
+    // Read the data from minio based of the id
+    let data = mm.download(&asset.id.to_string()).await?;
     let response = Response::builder()
         .header("Content-Type", "application/octet-stream")
+        .header("filecrab-file-name", &asset.file_name)
         .body(Body::from_stream(data.bytes))
         .map_err(Error::Http)?;
 
