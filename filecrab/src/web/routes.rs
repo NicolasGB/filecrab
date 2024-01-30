@@ -129,8 +129,9 @@ async fn download_handler(
     let data = mm.download(&asset.id.id.to_string()).await?;
     let response = Response::builder()
         .header("Content-Type", "application/octet-stream")
+        .header("Content-Length", data.1)
         .header("filecrab-file-name", &asset.file_name)
-        .body(Body::from_stream(data.bytes))
+        .body(Body::from_stream(data.0.bytes))
         .map_err(Error::Http)?;
 
     Ok(response)

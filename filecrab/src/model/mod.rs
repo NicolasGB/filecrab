@@ -132,10 +132,14 @@ impl ModelManager {
         Ok(())
     }
 
-    pub async fn download(&self, file_name: &str) -> anyhow::Result<ResponseDataStream> {
-        let r = self.bucket.get_object_stream(file_name).await?;
+    pub async fn download(&self, file_name: &str) -> anyhow::Result<(ResponseDataStream, usize)> {
+        // We get the head of the object to be able to access the size of it
+        let (head, _) = self.bucket.head_object(file_name).await?;
 
-        Ok(r)
+        // We get the object stream
+        let r = self.bucket.get_object_stream(file_name).await?;
+        // We return the stream and the content lenght
+        Ok((r, head.content_length.unwrap_or_default() as usize))
     }
 
     pub fn db(&self) -> &Surreal<Client> {
