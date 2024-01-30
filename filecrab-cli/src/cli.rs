@@ -207,11 +207,7 @@ impl Cli {
 
         // Chech if there's been an error
         if !resp.status().is_success() {
-            bail!(format!(
-                "Error code: {}, message:{}",
-                resp.status().to_string(),
-                std::str::from_utf8(&resp.bytes().await?)?
-            ))
+            bail!(format!("{}", resp.status().to_string()))
         }
 
         // Get the filename from the headers
@@ -245,6 +241,7 @@ impl Cli {
         pb.set_style(ProgressStyle::default_bar()
         .template("{msg}\n{spinner:.green} [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
         .progress_chars("#>-"));
+        pb.set_message("Downloading file...");
 
         // Read the stream
         let mut stream = resp.bytes_stream();
