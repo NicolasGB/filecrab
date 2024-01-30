@@ -1,12 +1,21 @@
-use std::io::{self, Write};
+use std::{
+    cmp::min,
+    env,
+    io::{self, Write},
+};
 
 use anyhow::{bail, Ok};
 
 use clap::{Parser, Subcommand};
 use config::Config;
+use futures_util::StreamExt;
+use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use tokio::fs;
+use tokio::{
+    fs::{self, OpenOptions},
+    io::{AsyncWriteExt, BufWriter},
+};
 
 #[derive(Parser)]
 pub struct Cli {
@@ -23,12 +32,25 @@ pub struct Cli {
 
 #[derive(Clone, Subcommand)]
 pub enum Command {
+    /// Uploads a file to filecrab.
     Upload {
+        /// Path to the file to upload.
         path: String,
+        /// A password to encrypt the file.
         password: Option<String>,
     },
-    Download,
+    /// Downloads the file given by the id returned by the upload command.
+    Download {
+        /// The memorable word list, shared with you.
+        id: String,
+        /// Password if the file is protected.
+        password: Option<String>,
+        /// If you don't want to save it to the cwd, set a path to save the file to.
+        path: Option<String>,
+    },
+    /// WIP
     Copy,
+    /// WIP
     Paste,
 }
 
@@ -52,7 +74,14 @@ impl Cli {
                 ref path,
                 ref password,
             } => self.upload(path.clone(), password.clone()).await?,
-            Command::Download => todo!(),
+            Command::Download {
+                ref id,
+                ref password,
+                ref path,
+            } => {
+                self.download(id.clone(), password.clone(), path.clone())
+                    .await?
+            }
             Command::Copy => todo!(),
             Command::Paste => self.paste().await?,
         };
@@ -126,7 +155,8 @@ impl Cli {
             .json::<UploadResponse>()
             .await?;
 
-        println!("The id to share is the following: {}", resp.id);
+        println!("The id to share is the following:");
+        println!("  {}", resp.id);
 
         // Copy it to the clipboard
         let mut clipboard = arboard::Clipboard::new()?;
@@ -140,6 +170,105 @@ impl Cli {
         io::stdin()
             .read_line(&mut buffer)
             .expect("Failed to read input");
+
+        Ok(())
+    }
+
+    async fn download(
+        &mut self,
+        id: String,
+        password: Option<String>,
+        path: Option<String>,
+    ) -> anyhow::Result<()> {
+        self.set_config()?;
+
+        // Safe to unwrap as the previous function would have errored
+        //TODO: 23/01/2024 - should still avoid to unwrap once the cli is done
+        let Settings { api_key, url } = self.settings.as_ref().unwrap();
+
+        // If there's a password set it to the multipart
+        let mut query: Vec<(&str, &str)> = vec![("file", &id)];
+
+        // If a password has been set add it to the query params
+        let pwd: String;
+        if let Some(password) = password {
+            pwd = password.clone();
+            query.push(("password", &pwd))
+        }
+
+        // Send the request
+        let resp = self
+            .client
+            .get(format!("{url}/api/download"))
+            .header("filecrab-key", api_key)
+            .query(&query)
+            .send()
+            .await?;
+
+        // Chech if there's been an error
+        if !resp.status().is_success() {
+            bail!(format!(
+                "Error code: {}, message:{}",
+                resp.status().to_string(),
+                std::str::from_utf8(&resp.bytes().await?)?
+            ))
+        }
+
+        // Get the filename from the headers
+        let filename = resp
+            .headers()
+            .get("filecrab-file-name")
+            .map(|x| x.to_str().unwrap_or_default().to_string());
+
+        // Get either given path or cwd
+        let cwd = if let Some(p) = path {
+            p
+        } else {
+            env::current_dir()?.to_str().unwrap_or_default().to_string()
+        };
+
+        // Create file with the name of the asset
+        //TODO: 30/01/2024 - Implement better error messaging here
+        let file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(format!("{}/{}", cwd, filename.clone().unwrap_or_default()))
+            .await?;
+        // Create the buffer
+        let mut out = BufWriter::new(file);
+
+        // Get the content lenght for the progressbar
+        let total_size = resp.content_length().unwrap_or_default();
+
+        // Init the progress bar
+        let pb = ProgressBar::new(total_size);
+        pb.set_style(ProgressStyle::default_bar()
+        .template("{msg}\n{spinner:.green} [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
+        .progress_chars("#>-"));
+
+        // Read the stream
+        let mut stream = resp.bytes_stream();
+        let mut downloaded: u64 = 0;
+        while let Some(data) = stream.next().await {
+            // Borrow checker magic
+            let chunk = data?;
+            tokio::io::copy(&mut chunk.as_ref(), &mut out).await?;
+
+            // Calculate new position
+            let new = min(downloaded + (chunk.len() as u64), total_size);
+            downloaded = new;
+
+            pb.set_position(new);
+        }
+
+        // Flush the contents to the file only once
+        out.flush().await?;
+
+        // Finish the progress bar
+        pb.finish_with_message(format!(
+            "The name of the downloaded element is: {}",
+            filename.unwrap_or_default()
+        ));
 
         Ok(())
     }
