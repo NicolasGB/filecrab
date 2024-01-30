@@ -2,6 +2,7 @@ use axum::{
     body::Body,
     debug_handler,
     extract::{DefaultBodyLimit, Multipart, Query, State},
+    http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
@@ -103,6 +104,7 @@ async fn upload_handler(
 #[derive(Debug, Deserialize)]
 struct DownloadParams {
     file: Option<String>,
+    password: Option<String>,
 }
 
 #[debug_handler]
@@ -115,8 +117,16 @@ async fn download_handler(
         .await
         .map_err(Error::ModelManager)?;
 
+    // If the asset has a password we need to make sure you are allowed to
+    if !asset
+        .check_password(params.password.unwrap_or_default())
+        .map_err(Error::ModelManager)?
+    {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
+    }
+
     // Read the data from minio based of the id
-    let data = mm.download(&asset.id.to_string()).await?;
+    let data = mm.download(&asset.id.id.to_string()).await?;
     let response = Response::builder()
         .header("Content-Type", "application/octet-stream")
         .header("filecrab-file-name", &asset.file_name)

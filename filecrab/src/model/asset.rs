@@ -82,7 +82,7 @@ impl Asset {
         let db = mm.db();
 
         let res: Option<Asset> = db
-            .query("SELECT * FORM asset WHERE memo_id == \"$memo_id\" LIMIT 1")
+            .query("SELECT * FROM asset WHERE memo_id == $memo_id LIMIT 1")
             .bind(("memo_id", memo_id))
             .await
             .map_err(ModelManagerError::SearchAsset)?
@@ -90,5 +90,16 @@ impl Asset {
             .map_err(ModelManagerError::TakeError)?;
 
         res.ok_or_else(|| ModelManagerError::AssetNotFound)
+    }
+}
+
+impl Asset {
+    /// Checks if the given password matches the one from the asset if this has one
+    pub fn check_password(&self, pwd: String) -> Result<bool> {
+        if let Some(hash) = &self.password {
+            return argon2::verify_encoded(hash, &pwd.into_bytes())
+                .map_err(|_| ModelManagerError::InvalidPasswod);
+        }
+        Ok(true)
     }
 }

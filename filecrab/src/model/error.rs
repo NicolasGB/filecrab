@@ -16,15 +16,16 @@ pub enum ModelManagerError {
     SignIn(surrealdb::Error),
     CouldNotDefineTable(surrealdb::Error),
     CouldNotSetTableIndex(surrealdb::Error),
+    TakeError(surrealdb::Error),
 
     //Assets
     CreateAsset(surrealdb::Error),
     SearchAsset(surrealdb::Error),
-    TakeError(surrealdb::Error),
     AssetNotFound,
 
     //Password
     CouldNotHashPassword,
+    InvalidPasswod,
 }
 
 impl core::fmt::Display for ModelManagerError {
