@@ -1,5 +1,6 @@
 pub mod asset;
 mod error;
+pub mod text;
 
 use std::io;
 
@@ -144,10 +145,5 @@ impl ModelManager {
 
     pub fn db(&self) -> &Surreal<Client> {
         &self.db
-    }
-
-    #[allow(dead_code)]
-    pub fn bucket(&self) -> &Bucket {
-        &self.bucket
     }
 }

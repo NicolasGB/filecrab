@@ -23,6 +23,21 @@ pub enum ModelManagerError {
     SearchAsset(surrealdb::Error),
     AssetNotFound,
 
+    //Texts
+    CreateText(surrealdb::Error),
+    SearchText(surrealdb::Error),
+    TextNotFound,
+
+    // Hex
+    DecodeHex(hex::FromHexError),
+
+    //Stdio
+    StdIo(std::io::Error),
+
+    // Age
+    DecryptError(age::DecryptError),
+    EncyrpError(age::EncryptError),
+
     //Password
     CouldNotHashPassword,
     InvalidPasswod,

@@ -56,8 +56,6 @@ impl Asset {
             data.password = Some(hash)
         }
 
-        debug!("{data:?}");
-
         // Add an expire time if it's not set
         if data.expire.is_none() {
             // If nothing is set default to the config's default expire time

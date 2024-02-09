@@ -15,6 +15,7 @@ use crate::{
     config::config,
     model::{
         asset::{Asset, AssetToCreate},
+        text::{Text, TextToCreate},
         ModelManager,
     },
     web::{middleware::api_key_mw, Error, Result},
@@ -24,6 +25,8 @@ pub fn routes(mm: ModelManager) -> Router {
     Router::new()
         .route("/api/upload", post(upload_handler))
         .route("/api/download", get(download_handler))
+        .route("/api/paste", post(paste_handler))
+        .route("/api/copy", get(copy_handler))
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(
             config().MAXIMUM_FILE_SIZE * 1024 * 1024, /* in mb */
@@ -135,4 +138,54 @@ async fn download_handler(
         .map_err(Error::Http)?;
 
     Ok(response)
+}
+
+#[debug_handler]
+async fn paste_handler(
+    State(mm): State<ModelManager>,
+    Json(mut body): Json<TextToCreate>,
+) -> Result<Response> {
+    if body.content.is_empty() {
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    }
+    let text = Text::create(mm.clone(), &mut body)
+        .await
+        .map_err(Error::ModelManager)?;
+
+    let res = CreateReponse {
+        id: text.id.id.to_string(),
+    };
+
+    Ok(Json(res).into_response())
+}
+
+#[derive(Debug, Deserialize)]
+struct CopyParams {
+    id: String,
+    password: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CopyResponse {
+    content: String,
+}
+
+#[debug_handler]
+async fn copy_handler(
+    State(mm): State<ModelManager>,
+    Query(params): Query<CopyParams>,
+) -> Result<Response> {
+    if params.id.is_empty() {
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    }
+
+    let text = Text::read(mm.clone(), params.id, params.password)
+        .await
+        .map_err(Error::ModelManager)?;
+
+    let res = CopyResponse {
+        content: text.content,
+    };
+
+    Ok(Json(res).into_response())
 }
