@@ -36,7 +36,7 @@ pub enum ModelManagerError {
 
     // Age
     DecryptError(age::DecryptError),
-    EncyrpError(age::EncryptError),
+    EncyrptError(age::EncryptError),
 
     //Password
     CouldNotHashPassword,

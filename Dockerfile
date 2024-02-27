@@ -1,5 +1,7 @@
 # chef image with cargo
-FROM rust:1.75 AS chef
+FROM alpine:edge AS chef
+RUN apk update
+RUN apk --no-cache add cargo rust openssl-dev
 RUN cargo install cargo-chef
 
 # Planner layer
@@ -11,7 +13,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 # Build layer
 From chef AS builder
 WORKDIR /app
-# Copy over the recipies
+# Copy over the recipes
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -21,7 +23,10 @@ RUN cargo build --release
 
 
 # RUNTIME IMAGE
-FROM gcr.io/distroless/cc-debian12 as runtime
+# FROM gcr.io/distroless/cc-debian12 as runtime
+FROM alpine:edge as runtime
+RUN apk update
+RUN apk --no-cache add libgcc openssl ca-certificates
 COPY --from=builder /app/target/release/filecrab /filecrab
 
 CMD ["/filecrab"]

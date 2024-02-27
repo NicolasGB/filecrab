@@ -35,16 +35,21 @@ pub enum Command {
     /// Uploads a file to filecrab.
     Upload {
         /// Path to the file to upload.
+        #[arg(long, short)]
         path: String,
-        /// A password to encrypt the file.
-        password: Option<String>,
+        /// A secret password to protect the file from being downloaded.
+        #[arg(long, short)]
+        secret: Option<String>,
     },
     /// Downloads the file given by the id returned by the upload command.
     Download {
         /// The memorable word list, shared with you.
+        #[arg(long = "file", short = 'f')]
         id: String,
-        /// Password if the file is protected.
-        password: Option<String>,
+        #[arg(long, short)]
+        /// Secret pass to access the file if this one is protected.
+        secret: Option<String>,
+        #[arg(long, short)]
         /// If you don't want to save it to the cwd, set a path to save the file to.
         path: Option<String>,
     },
@@ -72,11 +77,11 @@ impl Cli {
         match self.command {
             Command::Upload {
                 ref path,
-                ref password,
+                secret: ref password,
             } => self.upload(path.clone(), password.clone()).await?,
             Command::Download {
                 ref id,
-                ref password,
+                secret: ref password,
                 ref path,
             } => {
                 self.download(id.clone(), password.clone(), path.clone())
