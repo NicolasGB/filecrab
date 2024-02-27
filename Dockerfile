@@ -16,10 +16,10 @@ WORKDIR /app
 # Copy over the recipes
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --package filecrab --release --recipe-path recipe.json
 COPY . /app
 # Build the application
-RUN cargo build --release 
+RUN cargo build --package filecrab --release 
 
 
 # RUNTIME IMAGE
