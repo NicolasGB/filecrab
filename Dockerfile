@@ -23,7 +23,6 @@ RUN cargo build --release
 
 
 # RUNTIME IMAGE
-# FROM gcr.io/distroless/cc-debian12 as runtime
 FROM alpine:edge as runtime
 RUN apk update
 RUN apk --no-cache add libgcc openssl ca-certificates
