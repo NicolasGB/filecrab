@@ -5,7 +5,6 @@ use chrono::{prelude::*, Duration};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::{Datetime, Thing};
-use tracing::debug;
 
 use super::error::{ModelManagerError, Result};
 use crate::{config::config, model::ModelManager};

@@ -2,6 +2,7 @@ use std::{
     cmp::min,
     env,
     io::{self, Write},
+    vec,
 };
 
 use anyhow::{bail, Ok};
@@ -19,7 +20,7 @@ use tokio::{
 
 #[derive(Parser)]
 pub struct Cli {
-    /// Which command are we runnig
+    /// Which command are we running
     #[command(subcommand)]
     pub command: Command,
 
@@ -54,9 +55,19 @@ pub enum Command {
         path: Option<String>,
     },
     /// WIP
-    Copy,
+    Copy {
+        #[arg(long, short)]
+        id: String,
+        #[arg(long, short)]
+        secret: String,
+    },
     /// WIP
-    Paste,
+    Paste {
+        #[arg(long, short)]
+        content: String,
+        #[arg(long, short)]
+        secret: String,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -65,9 +76,20 @@ pub struct Settings {
     url: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct UploadResponse {
     pub id: String,
+}
+
+#[derive(Serialize)]
+struct PasteBody {
+    content: String,
+    password: String,
+}
+
+#[derive(Deserialize)]
+struct CopyResponse {
+    content: String,
 }
 
 impl Cli {
@@ -78,21 +100,26 @@ impl Cli {
             Command::Upload {
                 ref path,
                 secret: ref password,
-            } => self.upload(path.clone(), password.clone()).await?,
+            } => self.upload(path.clone(), password.clone()).await,
             Command::Download {
                 ref id,
                 secret: ref password,
                 ref path,
             } => {
                 self.download(id.clone(), password.clone(), path.clone())
-                    .await?
+                    .await
             }
-            Command::Copy => todo!(),
-            Command::Paste => self.paste().await?,
-        };
-
-        Ok(())
+            Command::Copy {
+                ref id,
+                secret: ref password,
+            } => self.copy(id.clone(), password.clone()).await,
+            Command::Paste {
+                ref content,
+                secret: ref password,
+            } => self.paste(content.clone(), password.clone()).await,
+        }
     }
+
     fn set_client(&mut self) {
         self.client = reqwest::Client::new();
     }
@@ -114,18 +141,56 @@ impl Cli {
         Ok(())
     }
 
-    async fn paste(mut self) -> anyhow::Result<()> {
+    async fn paste(&mut self, content: String, password: String) -> anyhow::Result<()> {
         self.set_config()?;
 
         // Safe to unwrap as the previous function would have errored
         //TODO: 23/01/2024 - should still avoid to unwrap once the cli is done
-        let Settings { api_key, url } = self.settings.unwrap();
+        let Settings { api_key, url } = self.settings.as_ref().unwrap();
 
+        let body = PasteBody { content, password };
         self.client
-            .post(url)
+            .post(format!("{url}/api/paste"))
+            .json(&body)
             .header("filecrab-key", api_key)
             .send()
             .await?;
+
+        Ok(())
+    }
+
+    async fn copy(&mut self, id: String, password: String) -> anyhow::Result<()> {
+        self.set_config()?;
+
+        // Safe to unwrap as the previous function would have errored
+        //TODO: 23/01/2024 - should still avoid to unwrap once the cli is done
+        let Settings { api_key, url } = self.settings.as_ref().unwrap();
+
+        // build the query params
+        let query = vec![("id", id), ("password", password)];
+
+        let resp: CopyResponse = self
+            .client
+            .get(format!("{url}/api/copy"))
+            .query(&query)
+            .header("filecrab-key", api_key)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        // Copy it to the clipboard
+        let mut clipboard = arboard::Clipboard::new()?;
+        clipboard.set_text(resp.content)?;
+        println!("It has now been copied to your clipboard, share it before the program exits!");
+
+        // Prompt the user to press Enter to exit
+        println!("Press Enter to exit...");
+        io::stdout().flush().unwrap();
+        let mut buffer = String::new();
+        io::stdin()
+            .read_line(&mut buffer)
+            .expect("Failed to read input");
 
         Ok(())
     }
@@ -150,14 +215,14 @@ impl Cli {
         }
 
         // Send the request
-        let resp = self
+        let resp: UploadResponse = self
             .client
             .post(format!("{url}/api/upload"))
             .header("filecrab-key", api_key)
             .multipart(form)
             .send()
             .await?
-            .json::<UploadResponse>()
+            .json()
             .await?;
 
         println!("The id to share is the following:");
@@ -210,7 +275,7 @@ impl Cli {
             .send()
             .await?;
 
-        // Chech if there's been an error
+        // Check if there's been an error
         if !resp.status().is_success() {
             bail!(format!("{}", resp.status().to_string()))
         }
@@ -238,7 +303,7 @@ impl Cli {
         // Create the buffer
         let mut out = BufWriter::new(file);
 
-        // Get the content lenght for the progressbar
+        // Get the content length for the progressbar
         let total_size = resp.content_length().unwrap_or_default();
 
         // Init the progress bar
