@@ -1,7 +1,9 @@
 use std::{
     cmp::min,
+    collections::HashMap,
     env,
     io::{self, Write},
+    path::Path,
     vec,
 };
 
@@ -25,7 +27,7 @@ pub struct Cli {
     pub command: Command,
 
     #[clap(skip)]
-    settings: Option<Settings>,
+    settings: Settings,
 
     #[clap(skip)]
     client: Client,
@@ -70,7 +72,7 @@ pub enum Command {
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Settings {
     api_key: String,
     url: String,
@@ -88,83 +90,128 @@ struct PasteBody {
 }
 
 #[derive(Deserialize)]
+struct PasteResponse {
+    id: String,
+}
+
+#[derive(Deserialize)]
 struct CopyResponse {
     content: String,
 }
 
 impl Cli {
     pub async fn run(mut self) -> anyhow::Result<()> {
-        self.set_client();
+        self.client = reqwest::Client::new();
 
-        match self.command {
+        match &self.command {
             Command::Upload {
-                ref path,
-                secret: ref password,
+                path,
+                secret: password,
             } => self.upload(path.clone(), password.clone()).await,
             Command::Download {
-                ref id,
-                secret: ref password,
-                ref path,
+                id,
+                secret: password,
+                path,
             } => {
                 self.download(id.clone(), password.clone(), path.clone())
                     .await
             }
             Command::Copy {
-                ref id,
-                secret: ref password,
+                id,
+                secret: password,
             } => self.copy(id.clone(), password.clone()).await,
             Command::Paste {
-                ref content,
-                secret: ref password,
+                content,
+                secret: password,
             } => self.paste(content.clone(), password.clone()).await,
         }
     }
 
-    fn set_client(&mut self) {
-        self.client = reqwest::Client::new();
-    }
-
-    fn set_config(&mut self) -> anyhow::Result<()> {
+    async fn set_config(&mut self) -> anyhow::Result<()> {
         let home = match home::home_dir() {
             Some(path) => path.to_str().unwrap_or_default().to_owned(),
             None => bail!("Could not locate home path which is mandatory for filecrab"),
         };
 
+        let path = format!("{home}/.config/filecrab/config.toml");
+
+        // Check if the config file exists, if not create it and prompt the user in the process
+        if !Path::new(&path).exists() {
+            self.init_config(&path).await?;
+        }
+
+        // Read the config
         let raw_config = Config::builder()
-            .add_source(config::File::with_name(&format!(
-                "{home}/.config/filecrab/config.toml"
-            )))
+            .add_source(config::File::with_name(&path))
             .build()?;
 
         let app_settings = raw_config.try_deserialize::<Settings>()?;
-        self.settings = Some(app_settings);
+        self.settings = app_settings;
+        Ok(())
+    }
+
+    async fn init_config(&self, path: &String) -> anyhow::Result<()> {
+        // Prompt the user to press Enter to exit
+        println!("The config file is not set, we're going to create it.");
+        println!(
+            "Please enter the complete url of your filecrab (ex: https://my-filecrab-instance.com):"
+        );
+        io::stdout().flush().unwrap();
+        let mut url = String::new();
+        io::stdin()
+            .read_line(&mut url)
+            .expect("Failed to read filecrab url");
+
+        println!("Enter the api-key to be used:");
+        io::stdout().flush().unwrap();
+        let mut api_key = String::new();
+        io::stdin()
+            .read_line(&mut api_key)
+            .expect("Failed to read api-key");
+
+        // Build settings and write to file
+        let mut settings = toml::map::Map::new();
+        settings.insert("url".into(), url.trim().into());
+        settings.insert("api_key".into(), api_key.trim().into());
+
+        let toml_string = toml::to_string(&settings)?;
+        fs::write(path, &toml_string).await?;
+
+        println!();
+        println!("Thanks, your file has been set in \"~/.config/filecrab/config.toml\". You can modify it manually if the parameters change in the future.");
+        println!("Enjoy pinching files and text! BLAZINLGY FAST");
+        println!();
+
         Ok(())
     }
 
     async fn paste(&mut self, content: String, password: String) -> anyhow::Result<()> {
-        self.set_config()?;
+        self.set_config().await?;
 
         // Safe to unwrap as the previous function would have errored
-        //TODO: 23/01/2024 - should still avoid to unwrap once the cli is done
-        let Settings { api_key, url } = self.settings.as_ref().unwrap();
+        let Settings { api_key, url } = &self.settings;
 
         let body = PasteBody { content, password };
-        self.client
+        let resp: PasteResponse = self
+            .client
             .post(format!("{url}/api/paste"))
             .json(&body)
             .header("filecrab-key", api_key)
             .send()
+            .await?
+            .json()
             .await?;
+
+        self.copy_to_clipboard(resp.id)?;
 
         Ok(())
     }
 
     async fn copy(&mut self, id: String, password: String) -> anyhow::Result<()> {
-        self.set_config()?;
+        self.set_config().await?;
 
         // Safe to unwrap as the previous function would have errored
-        //TODO: 23/01/2024 - should still avoid to unwrap once the cli is done
-        let Settings { api_key, url } = self.settings.as_ref().unwrap();
+        let Settings { api_key, url } = &self.settings;
 
         // build the query params
         let query = vec![("id", id), ("password", password)];
@@ -179,28 +226,17 @@ impl Cli {
             .json()
             .await?;
 
-        // Copy it to the clipboard
-        let mut clipboard = arboard::Clipboard::new()?;
-        clipboard.set_text(resp.content)?;
-        println!("It has now been copied to your clipboard, share it before the program exits!");
-
-        // Prompt the user to press Enter to exit
-        println!("Press Enter to exit...");
-        io::stdout().flush().unwrap();
-        let mut buffer = String::new();
-        io::stdin()
-            .read_line(&mut buffer)
-            .expect("Failed to read input");
+        // Set the content to the keyboard
+        self.copy_to_clipboard(resp.content)?;
 
         Ok(())
     }
 
     async fn upload(&mut self, path: String, password: Option<String>) -> anyhow::Result<()> {
-        self.set_config()?;
+        self.set_config().await?;
 
         // Safe to unwrap as the previous function would have errored
-        //TODO: 23/01/2024 - should still avoid to unwrap once the cli is done
-        let Settings { api_key, url } = self.settings.as_ref().unwrap();
+        let Settings { api_key, url } = &self.settings;
 
         // Get the name of the file
         let file_name = path.rsplit('/').next().unwrap_or("").to_owned();
@@ -228,18 +264,7 @@ impl Cli {
         println!("The id to share is the following:");
         println!("  {}", resp.id);
 
-        // Copy it to the clipboard
-        let mut clipboard = arboard::Clipboard::new()?;
-        clipboard.set_text(resp.id)?;
-        println!("It has now been copied to your clipboard, share it before the program exits!");
-
-        // Prompt the user to press Enter to exit
-        println!("Press Enter to exit...");
-        io::stdout().flush().unwrap();
-        let mut buffer = String::new();
-        io::stdin()
-            .read_line(&mut buffer)
-            .expect("Failed to read input");
+        self.copy_to_clipboard(resp.id)?;
 
         Ok(())
     }
@@ -250,11 +275,10 @@ impl Cli {
         password: Option<String>,
         path: Option<String>,
     ) -> anyhow::Result<()> {
-        self.set_config()?;
+        self.set_config().await?;
 
         // Safe to unwrap as the previous function would have errored
-        //TODO: 23/01/2024 - should still avoid to unwrap once the cli is done
-        let Settings { api_key, url } = self.settings.as_ref().unwrap();
+        let Settings { api_key, url } = &self.settings;
 
         // If there's a password set it to the multipart
         let mut query: Vec<(&str, &str)> = vec![("file", &id)];
@@ -337,6 +361,25 @@ impl Cli {
             filename.unwrap_or_default()
         ));
 
+        Ok(())
+    }
+
+    /// Sets the text to the keyboard and waits for the user to <CR> before returning. This will
+    /// allow the user to copy and paste the contents as long as they wish holding the program's
+    /// exit.
+    fn copy_to_clipboard(&self, text: String) -> anyhow::Result<()> {
+        // Copy it to the clipboard
+        let mut clipboard = arboard::Clipboard::new()?;
+        clipboard.set_text(text)?;
+        println!("It has now been copied to your clipboard, share it before the program exits!");
+
+        // Prompt the user to press Enter to exit
+        println!("Press Enter to exit...");
+        io::stdout().flush().unwrap();
+        let mut buffer = String::new();
+        io::stdin()
+            .read_line(&mut buffer)
+            .expect("Failed to read input");
         Ok(())
     }
 }
