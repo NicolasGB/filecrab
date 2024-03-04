@@ -1,12 +1,12 @@
 use std::{
     cmp::min,
-    collections::HashMap,
     env,
-    io::{self, Write},
+    io::{self, Read, Write},
     path::Path,
     vec,
 };
 
+use age::secrecy::Secret;
 use anyhow::{bail, Ok};
 
 use clap::{Parser, Subcommand};
@@ -17,7 +17,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::{
     fs::{self, OpenOptions},
-    io::{AsyncWriteExt, BufWriter},
+    io::AsyncWriteExt,
 };
 
 #[derive(Parser)]
@@ -241,14 +241,30 @@ impl Cli {
         // Get the name of the file
         let file_name = path.rsplit('/').next().unwrap_or("").to_owned();
         // Read the file, should stream it
-        let file = fs::read(path).await?;
-        let part = reqwest::multipart::Part::bytes(file).file_name(file_name);
-        let mut form = reqwest::multipart::Form::new().part("file", part);
+        let mut file = fs::read(path).await?;
 
-        // If there's a password set it to the multipart
+        // Initialize the form
+        let mut form = reqwest::multipart::Form::new();
+
+        // If there's a password set it to the multipart and encrypt the file
         if let Some(pwd) = password {
-            form = form.text("password", pwd)
+            // Set the file password
+            form = form.text("password", pwd.clone());
+            // Encrypt the file using apassphrase...
+            file = {
+                let encryptor = age::Encryptor::with_user_passphrase(Secret::new(pwd));
+
+                let mut encrypted = vec![];
+                let mut writer = encryptor.wrap_output(&mut encrypted)?;
+                writer.write_all(file.as_slice())?;
+                writer.finish()?;
+
+                encrypted
+            };
         }
+
+        let part = reqwest::multipart::Part::bytes(file).file_name(file_name);
+        form = form.part("file", part);
 
         // Send the request
         let resp: UploadResponse = self
@@ -284,7 +300,7 @@ impl Cli {
         let mut query: Vec<(&str, &str)> = vec![("file", &id)];
 
         // If a password has been set add it to the query params
-        let pwd: String;
+        let mut pwd: String = "".to_string();
         if let Some(password) = password {
             pwd = password.clone();
             query.push(("password", &pwd))
@@ -319,13 +335,11 @@ impl Cli {
 
         // Create file with the name of the asset
         //TODO: 30/01/2024 - Implement better error messaging here
-        let file = OpenOptions::new()
+        let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(format!("{}/{}", cwd, filename.clone().unwrap_or_default()))
             .await?;
-        // Create the buffer
-        let mut out = BufWriter::new(file);
 
         // Get the content length for the progressbar
         let total_size = resp.content_length().unwrap_or_default();
@@ -340,11 +354,12 @@ impl Cli {
         // Read the stream
         let mut stream = resp.bytes_stream();
         let mut downloaded: u64 = 0;
+        // Create the buffer
+        let mut buf: Vec<u8> = vec![];
         while let Some(data) = stream.next().await {
             // Borrow checker magic
             let chunk = data?;
-            tokio::io::copy(&mut chunk.as_ref(), &mut out).await?;
-
+            tokio::io::copy(&mut chunk.as_ref(), &mut buf).await?;
             // Calculate new position
             let new = min(downloaded + (chunk.len() as u64), total_size);
             downloaded = new;
@@ -352,8 +367,27 @@ impl Cli {
             pb.set_position(new);
         }
 
-        // Flush the contents to the file only once
-        out.flush().await?;
+        let decrypted;
+        let data_to_write = if !pwd.is_empty() {
+            decrypted = {
+                let decryptor = match age::Decryptor::new(&buf[..]).unwrap() {
+                    age::Decryptor::Passphrase(d) => d,
+                    _ => unreachable!(),
+                };
+
+                let mut decrypted = vec![];
+                let mut reader = decryptor.decrypt(&Secret::new(pwd.to_owned()), None)?;
+
+                reader.read_to_end(&mut decrypted)?;
+
+                decrypted
+            };
+            decrypted.as_ref()
+        } else {
+            buf.as_ref()
+        };
+
+        file.write_all(data_to_write).await?;
 
         // Finish the progress bar
         pb.finish_with_message(format!(
