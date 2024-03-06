@@ -29,7 +29,7 @@ impl Text {
             let mut encrypted = vec![];
             let mut writer = encryptor
                 .wrap_output(&mut encrypted)
-                .map_err(ModelManagerError::EncyrptError)?;
+                .map_err(ModelManagerError::EncryptError)?;
             writer
                 .write_all(data.content.as_bytes())
                 .map_err(ModelManagerError::StdIo)?;
@@ -82,7 +82,7 @@ impl Text {
             None
         };
 
-        //TODO: 09/02/2024 - Implement deletion after retreiving
+        //TODO: 09/02/2024 - Implement deletion after retrieving
         res.ok_or_else(|| ModelManagerError::TextNotFound)
     }
 }

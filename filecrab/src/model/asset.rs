@@ -5,6 +5,7 @@ use chrono::{prelude::*, Duration};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::{Datetime, Thing};
+use tracing::info;
 
 use super::error::{ModelManagerError, Result};
 use crate::{config::config, model::ModelManager};
@@ -15,6 +16,7 @@ pub struct Asset {
     pub password: Option<String>,
     pub file_name: String,
     pub memo_id: String,
+    pub expire: Option<Datetime>,
 }
 
 #[derive(Clone, Serialize, Debug)]
@@ -87,6 +89,20 @@ impl Asset {
             .map_err(ModelManagerError::TakeError)?;
 
         res.ok_or_else(|| ModelManagerError::AssetNotFound)
+    }
+
+    pub async fn clean_assets(mm: ModelManager) -> Result<()> {
+        let db = mm.db();
+
+        let now: Datetime = Utc::now().into();
+
+        let _res = db
+            .query("DELETE asset WHERE expire <= $now")
+            .bind(("now", now))
+            .await
+            .map_err(ModelManagerError::DeleteAsset)?;
+
+        Ok(())
     }
 }
 

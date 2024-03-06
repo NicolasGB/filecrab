@@ -3,8 +3,6 @@ name = "filecrab"
 version = "0.1.0"
 edition = "2021"
 
-[profile.release]
-lto = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -25,6 +23,8 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 anyhow = { workspace = true }
+
+clap = { workspace = true }
 
 age = { version = "0.10" }
 rust-s3 = { version = "0.34.0-rc3", features = ["with-tokio"] }

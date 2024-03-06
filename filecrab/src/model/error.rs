@@ -21,6 +21,7 @@ pub enum ModelManagerError {
     //Assets
     CreateAsset(surrealdb::Error),
     SearchAsset(surrealdb::Error),
+    DeleteAsset(surrealdb::Error),
     AssetNotFound,
 
     //Texts
@@ -36,7 +37,7 @@ pub enum ModelManagerError {
 
     // Age
     DecryptError(age::DecryptError),
-    EncyrptError(age::EncryptError),
+    EncryptError(age::EncryptError),
 
     //Password
     CouldNotHashPassword,

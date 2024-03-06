@@ -28,6 +28,6 @@ RUN apk update
 RUN apk --no-cache add libgcc openssl ca-certificates
 COPY --from=builder /app/target/release/filecrab /filecrab
 
-CMD ["/filecrab"]
+CMD ["/filecrab", "server"]
 
 

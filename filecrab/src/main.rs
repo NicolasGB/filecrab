@@ -1,9 +1,14 @@
+mod cli;
 mod config;
 mod error;
 mod model;
 mod web;
 
-use crate::{model::ModelManager, web::routes::routes};
+use crate::{
+    cli::Boot,
+    model::{asset::Asset, ModelManager},
+    web::routes::routes,
+};
 
 pub use self::error::{Error, Result};
 
@@ -12,6 +17,7 @@ use axum::{
     http::{header, HeaderValue},
     Router,
 };
+use clap::Parser;
 use std::time::Duration;
 use tokio::{net::TcpListener, signal};
 use tower::ServiceBuilder;
@@ -24,6 +30,8 @@ use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let mode = cli::Boot::parse();
+
     tracing_subscriber::fmt()
         .with_target(true)
         .with_env_filter(EnvFilter::from_default_env())
@@ -34,8 +42,10 @@ async fn main() -> Result<()> {
         Error::CouldNotInitModelManager
     })?;
 
-    // Build our middleware stack
-    let middleware = ServiceBuilder::new()
+    match mode {
+        Boot::Server => {
+            // Build our middleware stack
+            let middleware = ServiceBuilder::new()
         // Add high level tracing/logging to all requests
         .layer(
             TraceLayer::new_for_http()
@@ -55,18 +65,21 @@ async fn main() -> Result<()> {
             HeaderValue::from_static("application/json"),
         );
 
-    let routes = Router::new().merge(routes(mm)).layer(middleware);
+            let routes = Router::new().merge(routes(mm)).layer(middleware);
 
-    let listener = TcpListener::bind("0.0.0.0:8080")
-        .await
-        .map_err(|_| Error::CouldNotInitTcpListener("Could not start the listener"))?;
+            let listener = TcpListener::bind("0.0.0.0:8080")
+                .await
+                .map_err(|_| Error::CouldNotInitTcpListener("Could not start the listener"))?;
 
-    info!("{:12} - {:?}", "LISTENING", listener.local_addr());
+            info!("{:12} - {:?}", "LISTENING", listener.local_addr());
 
-    axum::serve(listener, routes.into_make_service())
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap();
+            axum::serve(listener, routes.into_make_service())
+                .with_graceful_shutdown(shutdown_signal())
+                .await
+                .unwrap();
+        }
+        Boot::Clean => Asset::clean_assets(mm).await.unwrap(),
+    }
 
     Ok(())
 }

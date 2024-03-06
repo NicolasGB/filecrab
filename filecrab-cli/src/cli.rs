@@ -56,14 +56,14 @@ pub enum Command {
         /// If you don't want to save it to the cwd, set a path to save the file to.
         path: Option<String>,
     },
-    /// WIP
+    /// Copies the remote text, which will be decrypted, to the clipboard.
     Copy {
         #[arg(long, short)]
         id: String,
         #[arg(long, short)]
         secret: String,
     },
-    /// WIP
+    /// Pastes the given text and uploads it to filecrab, the text will be encrypted.
     Paste {
         #[arg(long, short)]
         content: String,

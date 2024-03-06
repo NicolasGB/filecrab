@@ -1436,6 +1436,7 @@ dependencies = [
  "anyhow",
  "axum",
  "chrono",
+ "clap",
  "futures",
  "hex",
  "memorable-wordlist",
