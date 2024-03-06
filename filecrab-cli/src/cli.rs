@@ -180,9 +180,7 @@ impl Cli {
 
         // Prints the completion message.
         println!();
-        println!(
-            "Thanks, your file has been written in {path:?}. You can modify it manually later."
-        );
+        println!("Thanks, your file has been written in {path:?}. You can modify it manually.");
         println!("Enjoy pinching files and text! BLAZINGLY FAST!");
         println!();
         Ok(())
