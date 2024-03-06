@@ -148,7 +148,7 @@ impl Cli {
         self.config = config::Config::builder()
             .add_source(config::File::from(config_path))
             .build()?
-            .try_deserialize::<Config>()?;
+            .try_deserialize()?;
         Ok(())
     }
 
