@@ -271,10 +271,10 @@ impl Cli {
         }
 
         // Gets the filename from headers.
-        let file_name = res
-            .headers()
-            .get("filecrab-file-name")
-            .map(|val| val.to_str().unwrap_or_default().to_string()); // TODO error handling
+        let file_name = match res.headers().get("filecrab-file-name") {
+            Some(file_name) => file_name.to_str()?.to_string(),
+            None => bail!("Could not retrieve the file name from the headers"),
+        };
 
         // Computes the destination path.
         let path = if let Some(path) = path {
@@ -287,11 +287,7 @@ impl Cli {
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(format!(
-                "{}/{}",
-                path.display(),
-                file_name.clone().unwrap_or_default()
-            ))
+            .open(format!("{}/{}", path.display(), file_name))
             .await?;
 
         // Gets the content length for the progress bar.
@@ -339,8 +335,7 @@ impl Cli {
 
         // Finishes the progress bar.
         pb.finish_with_message(format!(
-            "The name of the downloaded element is: {}",
-            file_name.unwrap_or_default()
+            "The name of the downloaded element is: {file_name}"
         ));
         Ok(())
     }
