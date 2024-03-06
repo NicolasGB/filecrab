@@ -1,273 +1,225 @@
+use age::{secrecy::Secret, Decryptor, Encryptor};
+use anyhow::{bail, Ok, Result};
+use arboard::Clipboard;
+use clap::{Parser, Subcommand};
+use futures_util::StreamExt;
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::{
+    multipart::{Form, Part},
+    Client,
+};
+use serde::{Deserialize, Serialize};
 use std::{
     cmp::min,
     env,
     io::{self, Read, Write},
-    path::Path,
+    path::PathBuf,
     vec,
 };
-
-use age::secrecy::Secret;
-use anyhow::{bail, Ok};
-
-use clap::{Parser, Subcommand};
-use config::Config;
-use futures_util::StreamExt;
-use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use tokio::{
     fs::{self, OpenOptions},
     io::AsyncWriteExt,
 };
+use toml::map::Map;
 
+/// Program to share files and text.
 #[derive(Parser)]
 pub struct Cli {
-    /// Which command are we running
     #[command(subcommand)]
-    pub command: Command,
-
+    cmd: Command,
     #[clap(skip)]
-    settings: Settings,
-
+    config: Config,
     #[clap(skip)]
     client: Client,
 }
 
+/// Represents the CLI subcommands.
 #[derive(Clone, Subcommand)]
 pub enum Command {
-    /// Uploads a file to filecrab.
+    /// Upload a file to filecrab.
     Upload {
         /// Path to the file to upload.
         #[arg(long, short)]
-        path: String,
-        /// A secret password to protect the file from being downloaded.
-        #[arg(long, short)]
-        secret: Option<String>,
+        path: PathBuf,
+        /// Password to protect the file.
+        #[arg(long = "password", short = 'P')]
+        pwd: Option<String>,
     },
-    /// Downloads the file given by the id returned by the upload command.
+    /// Download the file represented by the ID returned by the upload command.
     Download {
-        /// The memorable word list, shared with you.
+        /// Memorable ID.
         #[arg(long = "file", short = 'f')]
         id: String,
+        /// Password to access the file.
+        #[arg(long = "password", short = 'P')]
+        pwd: Option<String>,
+        /// Path to the destination file (default to the current directory).
         #[arg(long, short)]
-        /// Secret pass to access the file if this one is protected.
-        secret: Option<String>,
-        #[arg(long, short)]
-        /// If you don't want to save it to the cwd, set a path to save the file to.
-        path: Option<String>,
+        path: Option<PathBuf>,
     },
-    /// Copies the remote text, which will be decrypted, to the clipboard.
-    Copy {
-        #[arg(long, short)]
-        id: String,
-        #[arg(long, short)]
-        secret: String,
-    },
-    /// Pastes the given text and uploads it to filecrab, the text will be encrypted.
+    /// Paste a text and upload it to filecrab.
     Paste {
+        /// Text to paste.
         #[arg(long, short)]
         content: String,
+        /// Password to protect the text.
+        #[arg(long = "password", short = 'P')]
+        pwd: String,
+    },
+    /// Copy the text represented by the ID returned by the paste command to the clipboard.
+    Copy {
+        /// Memorable ID.
         #[arg(long, short)]
-        secret: String,
+        id: String,
+        /// Password to access the text.
+        #[arg(long = "password", short = 'P')]
+        pwd: String,
     },
 }
 
-#[derive(Serialize, Deserialize, Default)]
-pub struct Settings {
-    api_key: String,
+/// Represents the CLI config.
+#[derive(Deserialize, Default)]
+struct Config {
     url: String,
+    api_key: String,
 }
 
+/// Represents the response of the upload request.
 #[derive(Deserialize)]
 struct UploadResponse {
-    pub id: String,
+    id: String,
 }
 
+/// Represents the body of the paste request.
 #[derive(Serialize)]
 struct PasteBody {
     content: String,
-    password: String,
+    #[serde(rename(serialize = "password"))]
+    pwd: String,
 }
 
+// Represents the response of the paste request.
 #[derive(Deserialize)]
 struct PasteResponse {
     id: String,
 }
 
+// Represents the response of the copy request.
 #[derive(Deserialize)]
 struct CopyResponse {
     content: String,
 }
 
 impl Cli {
-    pub async fn run(mut self) -> anyhow::Result<()> {
-        self.client = reqwest::Client::new();
+    /// Runs the CLI.
+    pub async fn run(mut self) -> Result<()> {
+        // Sets the config.
+        self.set_config().await?;
 
-        match &self.command {
-            Command::Upload {
-                path,
-                secret: password,
-            } => self.upload(path.clone(), password.clone()).await,
-            Command::Download {
-                id,
-                secret: password,
-                path,
-            } => {
-                self.download(id.clone(), password.clone(), path.clone())
-                    .await
+        // Creates a new HTTP client.
+        self.client = Client::new();
+
+        // Handles the subcommand.
+        match &self.cmd {
+            Command::Upload { path, pwd } => self.upload(path.clone(), pwd.clone()).await,
+            Command::Download { id, pwd, path } => {
+                self.download(id.clone(), pwd.clone(), path.clone()).await
             }
-            Command::Copy {
-                id,
-                secret: password,
-            } => self.copy(id.clone(), password.clone()).await,
-            Command::Paste {
-                content,
-                secret: password,
-            } => self.paste(content.clone(), password.clone()).await,
+            Command::Paste { content, pwd } => self.paste(content.clone(), pwd.clone()).await,
+            Command::Copy { id, pwd } => self.copy(id.clone(), pwd.clone()).await,
         }
     }
 
-    async fn set_config(&mut self) -> anyhow::Result<()> {
-        let home = match home::home_dir() {
-            Some(path) => path.to_str().unwrap_or_default().to_owned(),
+    /// Sets the config.
+    async fn set_config(&mut self) -> Result<()> {
+        // Builds the path to the config file.
+        let home_path = match home::home_dir() {
+            Some(path) => path,
             None => bail!("Could not locate home path which is mandatory for filecrab"),
         };
+        let config_path = home_path.join(".config/filecrab/config.toml");
 
-        let path = format!("{home}/.config/filecrab/config.toml");
-
-        // Check if the config file exists, if not create it and prompt the user in the process
-        if !Path::new(&path).exists() {
-            self.init_config(&path).await?;
+        // Prompts the user to set the config if it does not exist.
+        if !config_path.exists() {
+            self.prompt_config(&config_path).await?;
         }
 
-        // Read the config
-        let raw_config = Config::builder()
-            .add_source(config::File::with_name(&path))
-            .build()?;
-
-        let app_settings = raw_config.try_deserialize::<Settings>()?;
-        self.settings = app_settings;
+        // Deserializes the config.
+        self.config = config::Config::builder()
+            .add_source(config::File::from(config_path))
+            .build()?
+            .try_deserialize::<Config>()?;
         Ok(())
     }
 
-    async fn init_config(&self, path: &String) -> anyhow::Result<()> {
-        // Prompt the user to press Enter to exit
+    /// Prompts the user to set the config.
+    async fn prompt_config(&self, path: &PathBuf) -> Result<()> {
+        // Reads the URL from the stdin.
         println!("The config file is not set, we're going to create it.");
-        println!(
-            "Please enter the complete url of your filecrab (ex: https://my-filecrab-instance.com):"
-        );
-        io::stdout().flush().unwrap();
+        println!("Enter the complete URL of your filecrab (ex: https://my-filecrab-instance.com):");
+        io::stdout().flush()?;
         let mut url = String::new();
-        io::stdin()
-            .read_line(&mut url)
-            .expect("Failed to read filecrab url");
+        io::stdin().read_line(&mut url)?;
 
-        println!("Enter the api-key to be used:");
-        io::stdout().flush().unwrap();
+        // Reads the API key from the stdin.
+        println!("Enter the API key:");
+        io::stdout().flush()?;
         let mut api_key = String::new();
-        io::stdin()
-            .read_line(&mut api_key)
-            .expect("Failed to read api-key");
+        io::stdin().read_line(&mut api_key)?;
 
-        // Build settings and write to file
-        let mut settings = toml::map::Map::new();
-        settings.insert("url".into(), url.trim().into());
-        settings.insert("api_key".into(), api_key.trim().into());
+        // Builds the config and writes it to the file.
+        let mut map = Map::new();
+        map.insert("url".to_string(), url.trim().into());
+        map.insert("api_key".to_string(), api_key.trim().into());
+        let parent = match path.parent() {
+            Some(parent) => parent,
+            None => bail!("Could not retrieve the parent directory of the config file"),
+        };
+        fs::create_dir_all(parent).await?;
+        fs::write(path, &toml::to_string(&map)?).await?;
 
-        let toml_string = toml::to_string(&settings)?;
-        fs::write(path, &toml_string).await?;
-
+        // Prints the completion message.
         println!();
-        println!("Thanks, your file has been set in \"~/.config/filecrab/config.toml\". You can modify it manually if the parameters change in the future.");
-        println!("Enjoy pinching files and text! BLAZINLGY FAST");
+        println!(
+            "Thanks, your file has been written in {path:?}. You can modify it manually later."
+        );
+        println!("Enjoy pinching files and text! BLAZINGLY FAST!");
         println!();
-
         Ok(())
     }
 
-    async fn paste(&mut self, content: String, password: String) -> anyhow::Result<()> {
-        self.set_config().await?;
+    /// Uploads a file to filecrab.
+    async fn upload(&mut self, path: PathBuf, pwd: Option<String>) -> Result<()> {
+        // Destructures the config.
+        let Config { url, api_key } = &self.config;
 
-        // Safe to unwrap as the previous function would have errored
-        let Settings { api_key, url } = &self.settings;
+        // Reads the file.
+        let mut bytes = fs::read(&path).await?;
 
-        let body = PasteBody { content, password };
-        let resp: PasteResponse = self
-            .client
-            .post(format!("{url}/api/paste"))
-            .json(&body)
-            .header("filecrab-key", api_key)
-            .send()
-            .await?
-            .json()
-            .await?;
+        // Initializes the form.
+        let mut form = Form::new();
 
-        self.copy_to_clipboard(resp.id)?;
-
-        Ok(())
-    }
-
-    async fn copy(&mut self, id: String, password: String) -> anyhow::Result<()> {
-        self.set_config().await?;
-
-        // Safe to unwrap as the previous function would have errored
-        let Settings { api_key, url } = &self.settings;
-
-        // build the query params
-        let query = vec![("id", id), ("password", password)];
-
-        let resp: CopyResponse = self
-            .client
-            .get(format!("{url}/api/copy"))
-            .query(&query)
-            .header("filecrab-key", api_key)
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        // Set the content to the keyboard
-        self.copy_to_clipboard(resp.content)?;
-
-        Ok(())
-    }
-
-    async fn upload(&mut self, path: String, password: Option<String>) -> anyhow::Result<()> {
-        self.set_config().await?;
-
-        // Safe to unwrap as the previous function would have errored
-        let Settings { api_key, url } = &self.settings;
-
-        // Get the name of the file
-        let file_name = path.rsplit('/').next().unwrap_or("").to_owned();
-        // Read the file, should stream it
-        let mut file = fs::read(path).await?;
-
-        // Initialize the form
-        let mut form = reqwest::multipart::Form::new();
-
-        // If there's a password set it to the multipart and encrypt the file
-        if let Some(pwd) = password {
-            // Set the file password
+        // If there's a password, adds it to the form and encrypts the file.
+        if let Some(pwd) = pwd {
+            // Sets the password.
             form = form.text("password", pwd.clone());
-            // Encrypt the file using apassphrase...
-            file = {
-                let encryptor = age::Encryptor::with_user_passphrase(Secret::new(pwd));
-
-                let mut encrypted = vec![];
-                let mut writer = encryptor.wrap_output(&mut encrypted)?;
-                writer.write_all(file.as_slice())?;
+            // Encrypts the file.
+            bytes = {
+                let encryptor = Encryptor::with_user_passphrase(Secret::new(pwd));
+                let mut output = Vec::new();
+                let mut writer = encryptor.wrap_output(&mut output)?;
+                writer.write_all(&bytes)?;
                 writer.finish()?;
-
-                encrypted
+                output
             };
         }
 
-        let part = reqwest::multipart::Part::bytes(file).file_name(file_name);
-        form = form.part("file", part);
+        // Adds the file to the form.
+        let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
+        form = form.part("file", Part::bytes(bytes).file_name(file_name));
 
-        // Send the request
-        let resp: UploadResponse = self
+        // Sends the request.
+        let res: UploadResponse = self
             .client
             .post(format!("{url}/api/upload"))
             .header("filecrab-key", api_key)
@@ -277,37 +229,35 @@ impl Cli {
             .json()
             .await?;
 
-        println!("The id to share is the following:");
-        println!("  {}", resp.id);
+        // Prints the ID.
+        println!("The ID to share is the following:");
+        println!("-> {}", res.id);
 
-        self.copy_to_clipboard(resp.id)?;
-
+        // Copies the ID to the clipboard.
+        self.copy_to_clipboard(&res.id)?;
         Ok(())
     }
 
+    /// Downloads a file from filecrab.
     async fn download(
         &mut self,
         id: String,
-        password: Option<String>,
-        path: Option<String>,
-    ) -> anyhow::Result<()> {
-        self.set_config().await?;
+        pwd: Option<String>,
+        path: Option<PathBuf>,
+    ) -> Result<()> {
+        // Destructures the config.
+        let Config { url, api_key } = &self.config;
 
-        // Safe to unwrap as the previous function would have errored
-        let Settings { api_key, url } = &self.settings;
-
-        // If there's a password set it to the multipart
+        // Build the query params.
         let mut query: Vec<(&str, &str)> = vec![("file", &id)];
 
-        // If a password has been set add it to the query params
-        let mut pwd: String = "".to_string();
-        if let Some(password) = password {
-            pwd = password.clone();
-            query.push(("password", &pwd))
+        // If a password has been set, adds it to the query params.
+        if let Some(ref pwd) = pwd {
+            query.push(("password", pwd))
         }
 
-        // Send the request
-        let resp = self
+        // Sends the request.
+        let res = self
             .client
             .get(format!("{url}/api/download"))
             .header("filecrab-key", api_key)
@@ -315,105 +265,145 @@ impl Cli {
             .send()
             .await?;
 
-        // Check if there's been an error
-        if !resp.status().is_success() {
-            bail!(format!("{}", resp.status().to_string()))
+        // Checks if there's been an error.
+        if !res.status().is_success() {
+            bail!(format!("{}", res.status().to_string()));
         }
 
-        // Get the filename from the headers
-        let filename = resp
+        // Gets the filename from headers.
+        let file_name = res
             .headers()
             .get("filecrab-file-name")
-            .map(|x| x.to_str().unwrap_or_default().to_string());
+            .map(|val| val.to_str().unwrap_or_default().to_string()); // TODO error handling
 
-        // Get either given path or cwd
-        let cwd = if let Some(p) = path {
-            p
+        // Computes the destination path.
+        let path = if let Some(path) = path {
+            path
         } else {
-            env::current_dir()?.to_str().unwrap_or_default().to_string()
+            env::current_dir()?
         };
 
-        // Create file with the name of the asset
-        //TODO: 30/01/2024 - Implement better error messaging here
+        // Creates file with the name of the asset.
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(format!("{}/{}", cwd, filename.clone().unwrap_or_default()))
+            .open(format!(
+                "{}/{}",
+                path.display(),
+                file_name.clone().unwrap_or_default()
+            ))
             .await?;
 
-        // Get the content length for the progressbar
-        let total_size = resp.content_length().unwrap_or_default();
+        // Gets the content length for the progress bar.
+        let total_size = res.content_length().unwrap_or_default();
 
-        // Init the progress bar
+        // Inits the progress bar.
         let pb = ProgressBar::new(total_size);
         pb.set_style(ProgressStyle::default_bar()
-        .template("{msg}\n{spinner:.green} [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
-        .progress_chars("#>-"));
+            .template("{msg}\n{spinner:.green} [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
+            .progress_chars("#>-"));
         pb.set_message("Downloading file...");
 
-        // Read the stream
-        let mut stream = resp.bytes_stream();
+        // Inits the stream.
+        let mut stream = res.bytes_stream();
         let mut downloaded: u64 = 0;
-        // Create the buffer
-        let mut buf: Vec<u8> = vec![];
+
+        // Creates the buffer.
+        let mut buf: Vec<u8> = Vec::new();
+
+        // Reads the stream.
         while let Some(data) = stream.next().await {
-            // Borrow checker magic
             let chunk = data?;
             tokio::io::copy(&mut chunk.as_ref(), &mut buf).await?;
-            // Calculate new position
-            let new = min(downloaded + (chunk.len() as u64), total_size);
-            downloaded = new;
-
-            pb.set_position(new);
+            let pos = min(downloaded + (chunk.len() as u64), total_size);
+            downloaded = pos;
+            pb.set_position(pos);
         }
 
-        let decrypted;
-        let data_to_write = if !pwd.is_empty() {
-            decrypted = {
-                let decryptor = match age::Decryptor::new(&buf[..]).unwrap() {
-                    age::Decryptor::Passphrase(d) => d,
-                    _ => unreachable!(),
-                };
-
-                let mut decrypted = vec![];
-                let mut reader = decryptor.decrypt(&Secret::new(pwd.to_owned()), None)?;
-
-                reader.read_to_end(&mut decrypted)?;
-
-                decrypted
+        // Decrypts the file.
+        let bytes = if let Some(pwd) = pwd {
+            let decryptor = match Decryptor::new(&buf[..])? {
+                Decryptor::Passphrase(decryptor) => decryptor,
+                _ => unreachable!(),
             };
-            decrypted.as_ref()
+            let mut output = vec![];
+            let mut reader = decryptor.decrypt(&Secret::new(pwd), None)?;
+            reader.read_to_end(&mut output)?;
+            output
         } else {
-            buf.as_ref()
+            buf
         };
 
-        file.write_all(data_to_write).await?;
+        // Writes the file.
+        file.write_all(&bytes).await?;
 
-        // Finish the progress bar
+        // Finishes the progress bar.
         pb.finish_with_message(format!(
             "The name of the downloaded element is: {}",
-            filename.unwrap_or_default()
+            file_name.unwrap_or_default()
         ));
+        Ok(())
+    }
 
+    /// Pastes a text to filecrab.
+    async fn paste(&mut self, content: String, pwd: String) -> Result<()> {
+        // Destructures the config.
+        let Config { url, api_key } = &self.config;
+
+        // Sends the request.
+        let res: PasteResponse = self
+            .client
+            .post(format!("{url}/api/paste"))
+            .json(&PasteBody { content, pwd })
+            .header("filecrab-key", api_key)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        // Copies the ID to the clipboard.
+        self.copy_to_clipboard(&res.id)?;
+        Ok(())
+    }
+
+    /// Copies a text from filecrab.
+    async fn copy(&mut self, id: String, pwd: String) -> Result<()> {
+        // Destructures the config.
+        let Config { url, api_key } = &self.config;
+
+        // Build the query params.
+        let query = vec![("id", id), ("password", pwd)];
+
+        // Sends the request.
+        let res: CopyResponse = self
+            .client
+            .get(format!("{url}/api/copy"))
+            .query(&query)
+            .header("filecrab-key", api_key)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        // Copies the text to the clipboard.
+        self.copy_to_clipboard(&res.content)?;
         Ok(())
     }
 
     /// Sets the text to the keyboard and waits for the user to <CR> before returning. This will
     /// allow the user to copy and paste the contents as long as they wish holding the program's
     /// exit.
-    fn copy_to_clipboard(&self, text: String) -> anyhow::Result<()> {
-        // Copy it to the clipboard
-        let mut clipboard = arboard::Clipboard::new()?;
+    fn copy_to_clipboard(&self, text: &str) -> Result<()> {
+        // Copies the text to the clipboard.
+        let mut clipboard = Clipboard::new()?;
         clipboard.set_text(text)?;
         println!("It has now been copied to your clipboard, share it before the program exits!");
 
-        // Prompt the user to press Enter to exit
+        // Prompts the user to press enter to exit.
         println!("Press Enter to exit...");
-        io::stdout().flush().unwrap();
-        let mut buffer = String::new();
-        io::stdin()
-            .read_line(&mut buffer)
-            .expect("Failed to read input");
+        io::stdout().flush()?;
+        let mut buf = String::new();
+        io::stdin().read_line(&mut buf)?;
         Ok(())
     }
 }
