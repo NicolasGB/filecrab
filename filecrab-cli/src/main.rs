@@ -1,13 +1,10 @@
-use clap::Parser;
-
 use crate::cli::Cli;
+use anyhow::Result;
+use clap::Parser;
 
 mod cli;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    // Parse the cli
-    let app = Cli::parse();
-    // Run the app
-    app.run().await
+async fn main() -> Result<()> {
+    Cli::parse().run().await
 }
