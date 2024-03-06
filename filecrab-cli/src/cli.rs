@@ -98,13 +98,13 @@ struct PasteBody {
     pwd: String,
 }
 
-// Represents the response of the paste request.
+/// Represents the response of the paste request.
 #[derive(Deserialize)]
 struct PasteResponse {
     id: String,
 }
 
-// Represents the response of the copy request.
+/// Represents the response of the copy request.
 #[derive(Deserialize)]
 struct CopyResponse {
     content: String,
