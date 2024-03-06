@@ -34,7 +34,7 @@ pub struct Cli {
 }
 
 /// Represents the CLI subcommands.
-#[derive(Clone, Subcommand)]
+#[derive(Subcommand)]
 pub enum Command {
     /// Upload a file to filecrab.
     Upload {
