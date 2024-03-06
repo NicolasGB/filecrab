@@ -215,7 +215,11 @@ impl Cli {
         }
 
         // Adds the file to the form.
-        let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|str| str.to_string())
+            .unwrap_or_default();
         form = form.part("file", Part::bytes(bytes).file_name(file_name));
 
         // Sends the request.
