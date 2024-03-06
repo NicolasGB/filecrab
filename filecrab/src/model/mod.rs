@@ -14,6 +14,7 @@ use surrealdb::{
     Surreal,
 };
 use tokio_util::io::StreamReader;
+use tracing::info;
 
 use crate::config::config;
 use s3::{creds::Credentials, request::ResponseDataStream, Bucket, BucketConfiguration, Region};
@@ -139,11 +140,19 @@ impl ModelManager {
 
         // We get the object stream
         let r = self.bucket.get_object_stream(file_name).await?;
-        // We return the stream and the content lenght
+        // We return the stream and the content length
         Ok((r, head.content_length.unwrap_or_default() as usize))
     }
 
     pub fn db(&self) -> &Surreal<Client> {
         &self.db
+    }
+
+    pub async fn delete_files(&self, file_names: Vec<String>) -> anyhow::Result<()> {
+        for name in file_names.iter() {
+            self.bucket.delete_object(name).await?;
+        }
+
+        Ok(())
     }
 }

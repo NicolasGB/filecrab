@@ -46,24 +46,24 @@ async fn main() -> Result<()> {
         Boot::Server => {
             // Build our middleware stack
             let middleware = ServiceBuilder::new()
-        // Add high level tracing/logging to all requests
-        .layer(
-            TraceLayer::new_for_http()
-                .on_body_chunk(|chunk: &Bytes, latency: Duration, _: &tracing::Span| {
-                    tracing::trace!(size_bytes = chunk.len(), latency = ?latency, "sending body chunk")
-                })
-                .make_span_with(DefaultMakeSpan::new().include_headers(true))
-                .on_response(DefaultOnResponse::new().include_headers(true).latency_unit(LatencyUnit::Micros)),
-        )
-        // Box the response body so it implements `Default` which is required by axum
-        .map_response_body(axum::body::Body::new)
-        // Compress responses
-        .compression()
-        // Set a `Content-Type` if there isn't one already.
-        .insert_response_header_if_not_present(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("application/json"),
-        );
+            // Add high level tracing/logging to all requests
+            .layer(
+                TraceLayer::new_for_http()
+                    .on_body_chunk(|chunk: &Bytes, latency: Duration, _: &tracing::Span| {
+                        tracing::trace!(size_bytes = chunk.len(), latency = ?latency, "sending body chunk")
+                    })
+                    .make_span_with(DefaultMakeSpan::new().include_headers(true))
+                    .on_response(DefaultOnResponse::new().include_headers(true).latency_unit(LatencyUnit::Micros)),
+            )
+            // Box the response body so it implements `Default` which is required by axum
+            .map_response_body(axum::body::Body::new)
+            // Compress responses
+            .compression()
+            // Set a `Content-Type` if there isn't one already.
+            .insert_response_header_if_not_present(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json"),
+            );
 
             let routes = Router::new().merge(routes(mm)).layer(middleware);
 
@@ -78,7 +78,11 @@ async fn main() -> Result<()> {
                 .await
                 .unwrap();
         }
-        Boot::Clean => Asset::clean_assets(mm).await.unwrap(),
+        Boot::Clean => {
+            let res = Asset::clean_assets(mm.clone()).await.unwrap();
+            // Delete assets from the minio
+            mm.delete_files(res).await.unwrap();
+        }
     }
 
     Ok(())

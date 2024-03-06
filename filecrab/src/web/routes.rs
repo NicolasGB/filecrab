@@ -36,7 +36,7 @@ pub fn routes(mm: ModelManager) -> Router {
 }
 
 #[derive(Serialize)]
-struct CreateReponse {
+struct CreateResponse {
     pub id: String,
 }
 
@@ -44,7 +44,7 @@ struct CreateReponse {
 async fn upload_handler(
     State(mm): State<ModelManager>,
     mut multipart: Multipart,
-) -> Result<Json<CreateReponse>> {
+) -> Result<Json<CreateResponse>> {
     //First we generate an id which will be used for the file and the db
     let token = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
 
@@ -89,7 +89,7 @@ async fn upload_handler(
     }
 
     //If we got a file, time to upload buddy
-    let mut resp = CreateReponse { id: "".to_string() };
+    let mut resp = CreateResponse { id: "".to_string() };
 
     if has_file {
         //First we store the reference
@@ -129,7 +129,7 @@ async fn download_handler(
     }
 
     // Read the data from minio based of the id
-    let data = mm.download(&asset.id.id.to_string()).await?;
+    let data = mm.download(&asset.id.to_string()).await?;
     let response = Response::builder()
         .header("Content-Type", "application/octet-stream")
         .header("Content-Length", data.1)
@@ -152,7 +152,7 @@ async fn paste_handler(
         .await
         .map_err(Error::ModelManager)?;
 
-    let res = CreateReponse {
+    let res = CreateResponse {
         id: text.id.id.to_string(),
     };
 

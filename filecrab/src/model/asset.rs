@@ -5,7 +5,6 @@ use chrono::{prelude::*, Duration};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::{Datetime, Thing};
-use tracing::info;
 
 use super::error::{ModelManagerError, Result};
 use crate::{config::config, model::ModelManager};
@@ -91,18 +90,30 @@ impl Asset {
         res.ok_or_else(|| ModelManagerError::AssetNotFound)
     }
 
-    pub async fn clean_assets(mm: ModelManager) -> Result<()> {
+    pub async fn clean_assets(mm: ModelManager) -> Result<Vec<String>> {
         let db = mm.db();
 
         let now: Datetime = Utc::now().into();
 
-        let _res = db
+        // Get all deletable assets
+        let res: Vec<Thing> = db
+            .query("SELECT id FROM asset WHERE expire <= $now")
+            .bind(("now", &now))
+            .await
+            .map_err(ModelManagerError::DeleteAsset)?
+            .take((0, "id"))
+            .map_err(ModelManagerError::TakeError)?;
+
+        // Collect only the id out of the things
+        let res = res.into_iter().map(|v| v.id.to_string()).collect();
+
+        let _ = db
             .query("DELETE asset WHERE expire <= $now")
-            .bind(("now", now))
+            .bind(("now", &now))
             .await
             .map_err(ModelManagerError::DeleteAsset)?;
 
-        Ok(())
+        Ok(res)
     }
 }
 
