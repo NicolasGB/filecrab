@@ -113,8 +113,8 @@ struct CopyResponse {
 impl Cli {
     /// Runs the CLI.
     pub async fn run(mut self) -> Result<()> {
-        // Sets the config.
-        self.set_config().await?;
+        // Loads the config.
+        self.load_config().await?;
 
         // Creates a new HTTP client.
         self.client = Client::new();
@@ -130,8 +130,8 @@ impl Cli {
         }
     }
 
-    /// Sets the config.
-    async fn set_config(&mut self) -> Result<()> {
+    /// Loads the config.
+    async fn load_config(&mut self) -> Result<()> {
         // Builds the path to the config file.
         let home_path = match home::home_dir() {
             Some(path) => path,
@@ -152,7 +152,7 @@ impl Cli {
         Ok(())
     }
 
-    /// Prompts the user to set the config.
+    /// Prompts the user to set the config and saves it.
     async fn prompt_config(&self, path: &PathBuf) -> Result<()> {
         // Reads the URL from the stdin.
         println!("The config file is not set, we're going to create it.");
