@@ -3,23 +3,15 @@ name = "filecrab-cli"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true }
-serde_with = { workspace = true }
-futures = { workspace = true }
-futures-util = { workspace = true }
-clap = { workspace = true }
-
-tokio = { workspace = true }
-anyhow = { workspace = true }
-config = "0.14.0"
-home = "0.5.9"
-reqwest = { version = "0.11.23", features = ["multipart", "json", "stream"] }
-arboard = { version = "3" }
-indicatif = { version = "0.17" }
-toml = "0.8"
-#TODO: use workspace
 age = { version = "0.10" }
+anyhow = { workspace = true }
+arboard = { version = "3.3" }
+clap = { workspace = true }
+futures-util = { workspace = true }
+home = "0.5"
+indicatif = { version = "0.17" }
+reqwest = { version = "0.11", features = ["multipart", "json", "stream"] }
+serde = { workspace = true }
+tokio = { workspace = true }
+toml = { version = "0.8" }
