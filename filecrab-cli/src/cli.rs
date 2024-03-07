@@ -158,11 +158,13 @@ impl Cli {
         println!("Enter the complete URL of your filecrab (ex: https://my-filecrab-instance.com):");
         let mut url = String::new();
         io::stdin().read_line(&mut url)?;
+        let url = url.trim().to_string();
 
         // Reads the API key from the stdin.
         println!("Enter the API key:");
         let mut api_key = String::new();
         io::stdin().read_line(&mut api_key)?;
+        let api_key = api_key.trim().to_string();
 
         // Builds the config and writes it to the file.
         let parent = match path.parent() {
