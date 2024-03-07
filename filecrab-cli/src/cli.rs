@@ -157,13 +157,11 @@ impl Cli {
         // Reads the URL from the stdin.
         println!("The config file is not set, we're going to create it.");
         println!("Enter the complete URL of your filecrab (ex: https://my-filecrab-instance.com):");
-        io::stdout().flush()?;
         let mut url = String::new();
         io::stdin().read_line(&mut url)?;
 
         // Reads the API key from the stdin.
         println!("Enter the API key:");
-        io::stdout().flush()?;
         let mut api_key = String::new();
         io::stdin().read_line(&mut api_key)?;
 
@@ -397,7 +395,6 @@ impl Cli {
 
         // Prompts the user to press enter to exit.
         println!("Press Enter to exit...");
-        io::stdout().flush()?;
         let mut buf = String::new();
         io::stdin().read_line(&mut buf)?;
         Ok(())
