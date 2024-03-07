@@ -37,7 +37,7 @@ jobs:
         run: cargo clippy --all-features --tests -- -Dwarnings
 
   test:
-    name: Lint
+    name: Test
     needs: setup
     runs-on: ubuntu-latest
     steps:
