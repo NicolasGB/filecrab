@@ -46,7 +46,6 @@ impl IntoResponse for Error {
                     ModelManagerError::CreateText(_) => StatusCode::CONFLICT,
                     ModelManagerError::SearchText(_) => StatusCode::BAD_REQUEST,
                     ModelManagerError::TextNotFound => StatusCode::NOT_FOUND,
-                    ModelManagerError::InvalidPasswod => StatusCode::FORBIDDEN,
                     _ => StatusCode::INTERNAL_SERVER_ERROR,
                 };
 

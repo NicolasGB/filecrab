@@ -1,8 +1,6 @@
 use std::ops::Add;
 
-use argon2::Config;
 use chrono::{prelude::*, Duration};
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::{Datetime, Thing};
 
@@ -12,7 +10,7 @@ use crate::{config::config, model::ModelManager};
 #[derive(Clone, Deserialize)]
 pub struct Asset {
     pub id: Thing,
-    pub password: Option<String>,
+    pub encrypted: bool,
     pub file_name: String,
     pub memo_id: String,
     pub expire: Option<Datetime>,
@@ -20,7 +18,7 @@ pub struct Asset {
 
 #[derive(Clone, Serialize, Debug)]
 pub struct AssetToCreate {
-    pub password: Option<String>,
+    pub encrypted: bool,
     pub file_name: String,
     pub expire: Option<Datetime>,
     pub memo_id: Option<String>,
@@ -29,32 +27,6 @@ pub struct AssetToCreate {
 impl Asset {
     pub async fn create(mm: ModelManager, id: &str, data: &mut AssetToCreate) -> Result<Asset> {
         let db = mm.db();
-
-        //Hash password if set
-        if data.password.is_some() {
-            let hash = data
-                .password
-                .take()
-                .map(|password| {
-                    // Get the config
-                    let config = Config::default();
-
-                    //Get the thread rng
-                    let mut rng = rand::thread_rng();
-                    let mut salt = [0u8; 32];
-
-                    // Use map to handle the result of try_fill
-                    rng.try_fill(&mut salt)
-                        .ok()
-                        .and_then(|_| {
-                            argon2::hash_encoded(&password.into_bytes(), &salt, &config).ok()
-                        })
-                        .unwrap_or_default()
-                })
-                .ok_or(ModelManagerError::CouldNotHashPassword)?;
-
-            data.password = Some(hash)
-        }
 
         // Add an expire time if it's not set
         if data.expire.is_none() {
@@ -114,16 +86,5 @@ impl Asset {
             .map_err(ModelManagerError::DeleteAsset)?;
 
         Ok(res)
-    }
-}
-
-impl Asset {
-    /// Checks if the given password matches the one from the asset if this has one
-    pub fn check_password(&self, pwd: String) -> Result<bool> {
-        if let Some(hash) = &self.password {
-            return argon2::verify_encoded(hash, &pwd.into_bytes())
-                .map_err(|_| ModelManagerError::InvalidPasswod);
-        }
-        Ok(true)
     }
 }

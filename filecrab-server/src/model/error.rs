@@ -60,10 +60,4 @@ pub enum ModelManagerError {
     DecryptError(#[from] age::DecryptError),
     #[error("error encrypting age file")]
     EncryptError(#[from] age::EncryptError),
-
-    //Password
-    #[error("error hashich password")]
-    CouldNotHashPassword,
-    #[error("invalid password")]
-    InvalidPasswod,
 }

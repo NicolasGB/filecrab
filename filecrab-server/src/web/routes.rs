@@ -51,7 +51,7 @@ async fn upload_handler(
     // Prepare asset to create
     let mut asset_to_create = AssetToCreate {
         file_name: String::default(),
-        password: None,
+        encrypted: false,
         expire: None,
         memo_id: None,
     };
@@ -70,10 +70,10 @@ async fn upload_handler(
                 //Stream and upload the file
                 mm.upload(&token, field).await?;
             }
-            "password" => {
-                let password_bytes = field.bytes().await?.to_vec();
-                asset_to_create.password =
-                    Some(String::from_utf8_lossy(&password_bytes).to_string());
+            "encrypted" => {
+                let encrypted_bytes = field.bytes().await?.to_vec();
+                let encrypted_string = String::from_utf8_lossy(&encrypted_bytes).to_string();
+                asset_to_create.encrypted = encrypted_string.to_lowercase().eq("true");
             }
             "expire" => {
                 let expire_bytes = field.bytes().await?.to_vec();
@@ -106,7 +106,6 @@ async fn upload_handler(
 #[derive(Debug, Deserialize)]
 struct DownloadParams {
     file: Option<String>,
-    password: Option<String>,
 }
 
 #[debug_handler]
@@ -116,11 +115,6 @@ async fn download_handler(
 ) -> Result<impl IntoResponse> {
     // Read the asset from the database
     let asset = Asset::read_by_memo_id(mm.clone(), &params.file.unwrap_or_default()).await?;
-
-    // If the asset has a password we need to make sure you are allowed to
-    if !asset.check_password(params.password.unwrap_or_default())? {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    }
 
     // Read the data from minio based of the id
     let data = mm.download(&asset.id.id.to_string()).await?;
