@@ -18,7 +18,7 @@ pub async fn api_key_mw(
         Some(token) => {
             if token != &config().API_KEY {
                 tracing::warn!(
-                    "someone tried to request the api wiht an invalid key {:?}",
+                    "someone tried to request the api with an invalid key {:?}",
                     token
                 );
                 return Err(StatusCode::UNAUTHORIZED);
@@ -29,7 +29,7 @@ pub async fn api_key_mw(
             Ok(response)
         }
         _ => {
-            tracing::warn!("someone tried to request the api whithout a key");
+            tracing::warn!("someone tried to request the api without a key");
             Err(StatusCode::UNAUTHORIZED)
         }
     }

@@ -123,7 +123,7 @@ async fn download_handler(
     }
 
     // Read the data from minio based of the id
-    let data = mm.download(&asset.id.to_string()).await?;
+    let data = mm.download(&asset.id.id.to_string()).await?;
     let response = Response::builder()
         .header("Content-Type", "application/octet-stream")
         .header("Content-Length", data.1)
