@@ -15,11 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup
-        run: |
-          rustup update stable
-          rustup default stable
-
       - name: Format
         run: cargo fmt --all -- --check
 
