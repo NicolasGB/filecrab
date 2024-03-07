@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["filecrab", "filecrab-cli"]
+members = ["filecrab-server", "filecrab-cli"]
 
 [profile.release]
 # lto = true

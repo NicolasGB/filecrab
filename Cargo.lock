@@ -1381,7 +1381,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1676f435fc1dadde4d03e43f5d62b259e1ce5f40bd4ffb21db2b42ebe59c1382"
 
 [[package]]
-name = "filecrab"
+name = "filecrab-cli"
+version = "0.1.0"
+dependencies = [
+ "age",
+ "anyhow",
+ "arboard",
+ "clap",
+ "dirs",
+ "futures-util",
+ "indicatif",
+ "reqwest",
+ "serde",
+ "tokio",
+ "toml 0.8.10",
+]
+
+[[package]]
+name = "filecrab-server"
 version = "0.1.0"
 dependencies = [
  "age",
@@ -1407,23 +1424,6 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "filecrab-cli"
-version = "0.1.0"
-dependencies = [
- "age",
- "anyhow",
- "arboard",
- "clap",
- "dirs",
- "futures-util",
- "indicatif",
- "reqwest",
- "serde",
- "tokio",
- "toml 0.8.10",
 ]
 
 [[package]]
