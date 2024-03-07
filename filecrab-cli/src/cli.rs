@@ -205,7 +205,7 @@ impl Cli {
             .unwrap_or_default();
         form = form.part("file", Part::bytes(bytes).file_name(file_name));
 
-        // Set Upload bar
+        // Set Upload bar.
         let mut bar = ProgressBar::new_spinner();
         bar = bar.with_message("Uploading to filecrab. ");
         bar.enable_steady_tick(Duration::from_millis(100));
@@ -248,7 +248,7 @@ impl Cli {
             query.push(("password", pwd))
         }
 
-        // Set Upload bar
+        // Set Upload bar.
         let mut bar = ProgressBar::new_spinner();
         bar = bar.with_message("Requesting file to filecrab.");
         bar.enable_steady_tick(Duration::from_millis(100));
