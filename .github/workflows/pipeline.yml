@@ -1,4 +1,4 @@
-name: Pipeline
+name: pipeline
 
 on:
   push:
@@ -25,6 +25,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Check format
         run: cargo fmt --all -- --check
 
@@ -33,13 +34,15 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Check warnings
         run: cargo clippy --all-features --tests -- -Dwarnings
 
   test:
     name: Test
-    needs: setup
+    needs: lint
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Run tests
         run: cargo test
