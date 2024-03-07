@@ -20,7 +20,6 @@ use tokio::{
     fs::{self, OpenOptions},
     io::AsyncWriteExt,
 };
-use toml::map::Map;
 
 /// Program to share files and text.
 #[derive(Parser)]
@@ -78,7 +77,7 @@ pub enum Command {
 }
 
 /// Represents the CLI config.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 struct Config {
     url: String,
     api_key: String,
@@ -166,15 +165,12 @@ impl Cli {
         io::stdin().read_line(&mut api_key)?;
 
         // Builds the config and writes it to the file.
-        let mut map = Map::new();
-        map.insert("url".to_string(), url.trim().into());
-        map.insert("api_key".to_string(), api_key.trim().into());
         let parent = match path.parent() {
             Some(parent) => parent,
             None => bail!("Could not retrieve the parent directory of the config file"),
         };
         fs::create_dir_all(parent).await?;
-        fs::write(path, &toml::to_string(&map)?).await?;
+        fs::write(path, &toml::to_string(&Config { url, api_key })?).await?;
 
         // Prints the completion message.
         println!();
