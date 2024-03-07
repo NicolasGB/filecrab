@@ -16,16 +16,16 @@ WORKDIR /app
 # Copy over the recipes
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
-RUN cargo chef cook --package filecrab --recipe-path recipe.json
+RUN cargo chef cook --package filecrab-server --recipe-path recipe.json
 COPY . /app
 # Build the application
-RUN cargo build --package filecrab 
+RUN cargo build --package filecrab-server 
 
 
 # RUNTIME IMAGE
 FROM alpine:edge as runtime
 RUN apk update
 RUN apk --no-cache add libgcc openssl ca-certificates
-COPY --from=builder /app/target/debug/filecrab /filecrab
+COPY --from=builder /app/target/debug/filecrab-server /filecrab
 
 CMD ["/filecrab", "server"]
