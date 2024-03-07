@@ -1,0 +1,45 @@
+name: Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust (rustup)
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup component add clippy
+
+  format:
+    name: Format
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check format
+        run: cargo fmt --all -- --check
+
+  lint:
+    name: Lint
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check warnings
+        run: cargo clippy --all-features --tests -- -Dwarnings
+
+  test:
+    name: Lint
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run tests
+        run: cargo test
