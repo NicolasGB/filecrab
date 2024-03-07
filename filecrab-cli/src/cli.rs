@@ -33,7 +33,7 @@ pub struct Cli {
 }
 
 /// Represents the CLI subcommands.
-#[derive(Subcommand)]
+#[derive(Clone, Subcommand)]
 pub enum Command {
     /// Upload a file to filecrab.
     Upload {
@@ -119,13 +119,11 @@ impl Cli {
         self.client = Client::new();
 
         // Handles the subcommand.
-        match &self.cmd {
-            Command::Upload { path, pwd } => self.upload(path.clone(), pwd.clone()).await,
-            Command::Download { id, pwd, path } => {
-                self.download(id.clone(), pwd.clone(), path.clone()).await
-            }
-            Command::Paste { content, pwd } => self.paste(content.clone(), pwd.clone()).await,
-            Command::Copy { id, pwd } => self.copy(id.clone(), pwd.clone()).await,
+        match self.cmd.clone() {
+            Command::Upload { path, pwd } => self.upload(path, pwd).await,
+            Command::Download { id, pwd, path } => self.download(id, pwd, path).await,
+            Command::Paste { content, pwd } => self.paste(content, pwd).await,
+            Command::Copy { id, pwd } => self.copy(id, pwd).await,
         }
     }
 
