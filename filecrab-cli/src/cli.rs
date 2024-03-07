@@ -180,10 +180,10 @@ impl Cli {
         // If there's a password, adds it to the form and encrypts the file.
         if let Some(pwd) = pwd {
             // Sets the password.
-            form = form.text("password", pwd.clone());
+            form = form.text("encrypted", "true");
             // Encrypts the file.
             let mut bar = ProgressBar::new_spinner();
-            bar = bar.with_message("Encrypting ");
+            bar = bar.with_message("Encrypting file");
             bar.enable_steady_tick(Duration::from_millis(100));
 
             bytes = {
@@ -241,12 +241,7 @@ impl Cli {
         let Config { url, api_key } = &self.config;
 
         // Build the query params.
-        let mut query: Vec<(&str, &str)> = vec![("file", &id)];
-
-        // If a password has been set, adds it to the query params.
-        if let Some(ref pwd) = pwd {
-            query.push(("password", pwd))
-        }
+        let query: Vec<(&str, &str)> = vec![("file", &id)];
 
         // Set Upload bar
         let mut bar = ProgressBar::new_spinner();
@@ -316,7 +311,7 @@ impl Cli {
         // Decrypts the file.
         let bytes = if let Some(pwd) = pwd {
             let mut bar = ProgressBar::new_spinner();
-            bar = bar.with_message("Decrypting ");
+            bar = bar.with_message("Decrypting file");
             bar.enable_steady_tick(Duration::from_millis(100));
 
             let decryptor = match Decryptor::new(&buf[..])? {
