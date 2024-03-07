@@ -125,11 +125,10 @@ impl Cli {
     /// Loads the config.
     async fn load_config(&mut self) -> Result<()> {
         // Builds the path to the config file.
-        let home_path = match home::home_dir() {
-            Some(path) => path,
-            None => bail!("Could not locate home path which is mandatory for filecrab"),
+        let config_path = match dirs::config_dir() {
+            Some(config_dir) => config_dir.join("filecrab/config.toml"),
+            None => bail!("Could not locate config directory which is mandatory for filecrab"),
         };
-        let config_path = home_path.join(".config/filecrab/config.toml");
 
         // Prompts the user to set the config if it does not exist.
         if !config_path.exists() {
