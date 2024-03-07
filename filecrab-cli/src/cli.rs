@@ -137,10 +137,7 @@ impl Cli {
         }
 
         // Deserializes the config.
-        self.config = config::Config::builder()
-            .add_source(config::File::from(config_path))
-            .build()?
-            .try_deserialize()?;
+        self.config = toml::from_str(&fs::read_to_string(&config_path).await?)?;
         Ok(())
     }
 
