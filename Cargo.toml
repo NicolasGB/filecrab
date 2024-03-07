@@ -27,3 +27,4 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }
 tracing = "0.1.40"
 
 anyhow = "1"
+thiserror = "1"

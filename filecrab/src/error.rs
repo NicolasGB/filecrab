@@ -1,20 +1,19 @@
 use serde::Serialize;
+use thiserror::Error;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Error, Debug, Serialize, Clone)]
 pub enum Error {
+    #[error("missing environment variable {0}")]
     ConfigMissingEnv(&'static str),
+
+    #[error("the value of the environment {0} inavild")]
     InvalidEnvType(&'static str),
 
+    #[error("error initializing the model manager")]
     CouldNotInitModelManager,
+
+    #[error("error initializing server tcp listener: {0}")]
     CouldNotInitTcpListener(&'static str),
 }
-
-impl core::fmt::Display for Error {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "{self:?}")
-    }
-}
-
-impl std::error::Error for Error {}

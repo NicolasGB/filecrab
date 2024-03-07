@@ -80,8 +80,9 @@ async fn upload_handler(
                 let expire_string = String::from_utf8_lossy(&expire_bytes).to_string();
                 asset_to_create.expire = Some(
                     expire_string
+                        .clone()
                         .try_into()
-                        .map_err(|_| Error::InvalidExpireTime)?,
+                        .map_err(|_| Error::InvalidExpireTime(expire_string))?,
                 );
             }
             _ => {}

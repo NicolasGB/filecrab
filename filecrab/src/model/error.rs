@@ -1,53 +1,69 @@
 use s3::{creds::error::CredentialsError, error::S3Error};
+use thiserror::Error;
 
 pub type Result<T> = core::result::Result<T, ModelManagerError>;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum ModelManagerError {
     //Minio Related errors
-    MinioCredentials(CredentialsError),
-    CreateBucket(S3Error),
-    NewBucket(S3Error),
-    BucketExists(S3Error),
+    #[error("invalid minio credentials: {0}")]
+    MinioCredentials(#[from] CredentialsError),
+    #[error("s3 error {0}")]
+    S3Error(#[from] S3Error),
 
     //SurrealDB
-    NewDB(surrealdb::Error),
-    SetUseNSandDb(surrealdb::Error),
-    SignIn(surrealdb::Error),
-    CouldNotDefineTable(surrealdb::Error),
-    CouldNotSetTableIndex(surrealdb::Error),
-    TakeError(surrealdb::Error),
+    #[error("error connecting to new database")]
+    NewDB(#[source] surrealdb::Error),
+    #[error("error setting namespace: {ns} and database: {db}")]
+    SetUseNSandDb {
+        ns: String,
+        db: String,
+        source: surrealdb::Error,
+    },
+    #[error("error signing in the database")]
+    SignIn(#[source] surrealdb::Error),
+    #[error("error defining table")]
+    CouldNotDefineTable(#[source] surrealdb::Error),
+    #[error("error setting index")]
+    CouldNotSetTableIndex(#[source] surrealdb::Error),
+    #[error("error using take method on surrealdb result")]
+    TakeError(#[source] surrealdb::Error),
 
     //Assets
-    CreateAsset(surrealdb::Error),
-    SearchAsset(surrealdb::Error),
-    DeleteAsset(surrealdb::Error),
+    #[error("create asset error")]
+    CreateAsset(#[source] surrealdb::Error),
+    #[error("search asset error")]
+    SearchAsset(#[source] surrealdb::Error),
+    #[error("delete asset error")]
+    DeleteAsset(#[source] surrealdb::Error),
+    #[error("asset not found")]
     AssetNotFound,
 
     //Texts
-    CreateText(surrealdb::Error),
-    SearchText(surrealdb::Error),
+    #[error("create text error")]
+    CreateText(#[source] surrealdb::Error),
+    #[error("search text error")]
+    SearchText(#[source] surrealdb::Error),
+    #[error("text not found")]
     TextNotFound,
 
     // Hex
-    DecodeHex(hex::FromHexError),
+    #[error("error decoding hex")]
+    DecodeHex(#[from] hex::FromHexError),
 
     //Stdio
-    StdIo(std::io::Error),
+    #[error("std io error")]
+    StdIo(#[from] std::io::Error),
 
     // Age
-    DecryptError(age::DecryptError),
-    EncryptError(age::EncryptError),
+    #[error("error decrypting age file")]
+    DecryptError(#[from] age::DecryptError),
+    #[error("error encrypting age file")]
+    EncryptError(#[from] age::EncryptError),
 
     //Password
+    #[error("error hashich password")]
     CouldNotHashPassword,
+    #[error("invalid password")]
     InvalidPasswod,
 }
-
-impl core::fmt::Display for ModelManagerError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "{self:?}")
-    }
-}
-
-impl std::error::Error for ModelManagerError {}

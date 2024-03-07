@@ -1,32 +1,33 @@
 use std::sync::Arc;
 
 use axum::{extract::multipart::MultipartError, http::StatusCode, response::IntoResponse};
+use thiserror::Error;
 use tracing::error;
 
 use crate::model::ModelManagerError;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
+    #[error("the filename is not set in the request")]
     MissingFileName,
 
+    #[error(transparent)]
     ModelManager(ModelManagerError),
-    ReadingMultipartFile(MultipartError),
-    InvalidExpireTime,
 
+    #[error("error reading multipart file")]
+    ReadingMultipartFile(#[from] MultipartError),
+
+    #[error("the set expire time: {0}, is invalid")]
+    InvalidExpireTime(String),
+
+    #[error("todo remove me")]
     Anyhow(anyhow::Error),
 
+    #[error(transparent)]
     Http(axum::http::Error),
 }
-
-impl core::fmt::Display for Error {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "{self:?}")
-    }
-}
-
-impl std::error::Error for Error {}
 
 impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
@@ -35,11 +36,28 @@ impl IntoResponse for Error {
         match self {
             Self::MissingFileName => {
                 let mut response = (
-                    StatusCode::NOT_FOUND,
+                    StatusCode::BAD_REQUEST,
                     "File name was not set for the given object",
                 )
                     .into_response();
 
+                response.extensions_mut().insert(Arc::new(self));
+                response
+            }
+            Self::ModelManager(ref mm_err) => {
+                let code = match mm_err {
+                    ModelManagerError::CreateAsset(_) => StatusCode::CONFLICT,
+                    ModelManagerError::SearchAsset(_) => StatusCode::BAD_REQUEST,
+                    ModelManagerError::DeleteAsset(_) => StatusCode::BAD_REQUEST,
+                    ModelManagerError::AssetNotFound => StatusCode::NOT_FOUND,
+                    ModelManagerError::CreateText(_) => StatusCode::CONFLICT,
+                    ModelManagerError::SearchText(_) => StatusCode::BAD_REQUEST,
+                    ModelManagerError::TextNotFound => StatusCode::NOT_FOUND,
+                    ModelManagerError::InvalidPasswod => StatusCode::FORBIDDEN,
+                    _ => StatusCode::INTERNAL_SERVER_ERROR,
+                };
+
+                let mut response = (code, mm_err.to_string()).into_response();
                 response.extensions_mut().insert(Arc::new(self));
                 response
             }
@@ -51,13 +69,6 @@ impl IntoResponse for Error {
                 response
             }
         }
-    }
-}
-
-// Convert multipart error
-impl From<MultipartError> for Error {
-    fn from(value: MultipartError) -> Self {
-        Error::ReadingMultipartFile(value)
     }
 }
 

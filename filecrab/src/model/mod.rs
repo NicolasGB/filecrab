@@ -14,7 +14,6 @@ use surrealdb::{
     Surreal,
 };
 use tokio_util::io::StreamReader;
-use tracing::info;
 
 use crate::config::config;
 use s3::{creds::Credentials, request::ResponseDataStream, Bucket, BucketConfiguration, Region};
@@ -56,7 +55,11 @@ impl ModelManager {
         db.use_ns(&config().DB_NS)
             .use_db(&config().DB_DBNAME)
             .await
-            .map_err(ModelManagerError::SetUseNSandDb)?;
+            .map_err(|err| ModelManagerError::SetUseNSandDb {
+                ns: config().DB_NS.to_string(),
+                db: config().DB_NS.to_string(),
+                source: err,
+            })?;
 
         // Create the assets table
         db.query("DEFINE TABLE asset")
@@ -87,26 +90,18 @@ impl ModelManager {
             None,
             None,
             None,
-        )
-        .map_err(ModelManagerError::MinioCredentials)?;
+        )?;
 
-        let mut bucket = Bucket::new(bucket_name, region.clone(), creds.clone())
-            .map_err(ModelManagerError::NewBucket)?
-            .with_path_style();
+        let mut bucket = Bucket::new(bucket_name, region.clone(), creds.clone())?.with_path_style();
 
-        if !bucket
-            .exists()
-            .await
-            .map_err(ModelManagerError::BucketExists)?
-        {
+        if !bucket.exists().await? {
             bucket = Bucket::create_with_path_style(
                 bucket_name,
                 region,
                 creds,
                 BucketConfiguration::default(),
             )
-            .await
-            .map_err(ModelManagerError::CreateBucket)?
+            .await?
             .bucket;
         }
 

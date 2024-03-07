@@ -27,13 +27,9 @@ impl Text {
                 age::Encryptor::with_user_passphrase(Secret::new(data.password.clone()));
 
             let mut encrypted = vec![];
-            let mut writer = encryptor
-                .wrap_output(&mut encrypted)
-                .map_err(ModelManagerError::EncryptError)?;
-            writer
-                .write_all(data.content.as_bytes())
-                .map_err(ModelManagerError::StdIo)?;
-            writer.finish().map_err(ModelManagerError::StdIo)?;
+            let mut writer = encryptor.wrap_output(&mut encrypted)?;
+            writer.write_all(data.content.as_bytes())?;
+            writer.finish()?;
 
             // Encode to hex
             hex::encode_upper(encrypted)
@@ -61,21 +57,16 @@ impl Text {
             .map_err(ModelManagerError::SearchText)?;
 
         res = if let Some(mut text) = res {
-            let content = hex::decode(text.content).map_err(ModelManagerError::DecodeHex)?;
-            let decryptor =
-                match age::Decryptor::new(&content[..]).map_err(ModelManagerError::DecryptError)? {
-                    age::Decryptor::Passphrase(d) => d,
-                    _ => unreachable!(),
-                };
+            let content = hex::decode(text.content)?;
+            let decryptor = match age::Decryptor::new(&content[..])? {
+                age::Decryptor::Passphrase(d) => d,
+                _ => unreachable!(),
+            };
 
             let mut decrypted = vec![];
-            let mut reader = decryptor
-                .decrypt(&Secret::new(password), None)
-                .map_err(ModelManagerError::DecryptError)?;
+            let mut reader = decryptor.decrypt(&Secret::new(password), None)?;
 
-            reader
-                .read_to_end(&mut decrypted)
-                .map_err(ModelManagerError::StdIo)?;
+            reader.read_to_end(&mut decrypted)?;
             text.content = String::from_utf8_lossy(decrypted.as_ref()).to_string();
             Some(text)
         } else {
