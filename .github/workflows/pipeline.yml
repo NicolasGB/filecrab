@@ -1,4 +1,4 @@
-name: pipeline
+name: Pipeline
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  setup:
+  pipeline:
     name: Pipeline
     runs-on: ubuntu-latest
     steps:
