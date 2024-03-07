@@ -14,6 +14,7 @@ use std::{
     env,
     io::{self, Read, Write},
     path::PathBuf,
+    time::Duration,
     vec,
 };
 use tokio::{
@@ -181,6 +182,10 @@ impl Cli {
             // Sets the password.
             form = form.text("password", pwd.clone());
             // Encrypts the file.
+            let mut bar = ProgressBar::new_spinner();
+            bar = bar.with_message("Encrypting ");
+            bar.enable_steady_tick(Duration::from_millis(100));
+
             bytes = {
                 let encryptor = Encryptor::with_user_passphrase(Secret::new(pwd));
                 let mut output = Vec::new();
@@ -189,6 +194,7 @@ impl Cli {
                 writer.finish()?;
                 output
             };
+            bar.finish_with_message("File encrypted.")
         }
 
         // Adds the file to the form.
@@ -199,6 +205,11 @@ impl Cli {
             .unwrap_or_default();
         form = form.part("file", Part::bytes(bytes).file_name(file_name));
 
+        // Set Upload bar
+        let mut bar = ProgressBar::new_spinner();
+        bar = bar.with_message("Uploading to filecrab. ");
+        bar.enable_steady_tick(Duration::from_millis(100));
+
         // Sends the request.
         let res: UploadResponse = Client::new()
             .post(format!("{url}/api/upload"))
@@ -208,6 +219,7 @@ impl Cli {
             .await?
             .json()
             .await?;
+        bar.finish_with_message("File correctly uploaded.");
 
         // Prints the ID.
         println!("The ID to share is the following:");
@@ -236,6 +248,11 @@ impl Cli {
             query.push(("password", pwd))
         }
 
+        // Set Upload bar
+        let mut bar = ProgressBar::new_spinner();
+        bar = bar.with_message("Requesting file to filecrab.");
+        bar.enable_steady_tick(Duration::from_millis(100));
+
         // Sends the request.
         let res = Client::new()
             .get(format!("{url}/api/download"))
@@ -243,6 +260,7 @@ impl Cli {
             .query(&query)
             .send()
             .await?;
+        bar.finish();
 
         // Checks if there's been an error.
         if !res.status().is_success() {
@@ -297,6 +315,10 @@ impl Cli {
 
         // Decrypts the file.
         let bytes = if let Some(pwd) = pwd {
+            let mut bar = ProgressBar::new_spinner();
+            bar = bar.with_message("Decrypting ");
+            bar.enable_steady_tick(Duration::from_millis(100));
+
             let decryptor = match Decryptor::new(&buf[..])? {
                 Decryptor::Passphrase(decryptor) => decryptor,
                 _ => unreachable!(),
@@ -304,6 +326,7 @@ impl Cli {
             let mut output = vec![];
             let mut reader = decryptor.decrypt(&Secret::new(pwd), None)?;
             reader.read_to_end(&mut output)?;
+            bar.finish();
             output
         } else {
             buf
