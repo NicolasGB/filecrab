@@ -8,9 +8,19 @@ down:
 
 .PHONY: build
 build:
+	docker build  . -t filecrab -f Dockerfile.dev
+
+.PHONY: build-prod
+build-prod:
 	docker build  . -t filecrab
+
 
 .PHONY: rebuild
 rebuild: 
 	make build
+	make up
+
+.PHONY: rebuild-prod
+rebuild-prod: 
+	make build-prod
 	make up
