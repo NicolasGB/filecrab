@@ -1,7 +1,10 @@
-![logo](logo.png)
+<div align="center">
+  <img src="logo.png" alt="logo" />
+  <h1>filecrab</h1>
+  <h3>⚡ A blazingly fast file and text sharing service ⚡</h3>
+</div>
 
-### Welcome to filecrab!
-A blazingly fast file and text sharing service.
+# filecrab
 
 You can host your own instance, simply need an S3 bucket and a surrealdb instance.
 
