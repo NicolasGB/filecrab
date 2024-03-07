@@ -36,7 +36,6 @@ pub enum Command {
     /// Upload a file to filecrab.
     Upload {
         /// Path to the file to upload.
-        #[arg(long, short)]
         path: PathBuf,
         /// Password to protect the file.
         #[arg(long = "password", short = 'P')]
@@ -45,7 +44,6 @@ pub enum Command {
     /// Download the file represented by the ID returned by the upload command.
     Download {
         /// Memorable ID.
-        #[arg(long = "file", short = 'f')]
         id: String,
         /// Password to access the file.
         #[arg(long = "password", short = 'P')]
@@ -57,19 +55,15 @@ pub enum Command {
     /// Paste a text and upload it to filecrab.
     Paste {
         /// Text to paste.
-        #[arg(long, short)]
         content: String,
         /// Password to protect the text.
-        #[arg(long = "password", short = 'P')]
         pwd: String,
     },
     /// Copy the text represented by the ID returned by the paste command to the clipboard.
     Copy {
         /// Memorable ID.
-        #[arg(long, short)]
         id: String,
         /// Password to access the text.
-        #[arg(long = "password", short = 'P')]
         pwd: String,
     },
 }
