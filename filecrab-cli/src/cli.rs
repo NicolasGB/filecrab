@@ -38,7 +38,7 @@ pub enum Command {
         /// Path to the file to upload.
         path: PathBuf,
         /// Password to protect the file.
-        #[arg(long = "password", short = 'P')]
+        #[arg(long, short = 's')]
         pwd: Option<String>,
     },
     /// Download the file represented by the ID returned by the upload command.
@@ -46,7 +46,7 @@ pub enum Command {
         /// Memorable ID.
         id: String,
         /// Password to access the file.
-        #[arg(long = "password", short = 'P')]
+        #[arg(long, short = 's')]
         pwd: Option<String>,
         /// Path to the destination file (default to the current directory).
         #[arg(long, short)]
