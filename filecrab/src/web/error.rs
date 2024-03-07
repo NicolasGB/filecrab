@@ -14,16 +14,13 @@ pub enum Error {
     MissingFileName,
 
     #[error(transparent)]
-    ModelManager(ModelManagerError),
+    ModelManager(#[from] ModelManagerError),
 
     #[error("error reading multipart file")]
     ReadingMultipartFile(#[from] MultipartError),
 
     #[error("the set expire time: {0}, is invalid")]
     InvalidExpireTime(String),
-
-    #[error("todo remove me")]
-    Anyhow(anyhow::Error),
 
     #[error(transparent)]
     Http(axum::http::Error),
@@ -35,11 +32,7 @@ impl IntoResponse for Error {
 
         match self {
             Self::MissingFileName => {
-                let mut response = (
-                    StatusCode::BAD_REQUEST,
-                    "File name was not set for the given object",
-                )
-                    .into_response();
+                let mut response = (StatusCode::BAD_REQUEST, self.to_string()).into_response();
 
                 response.extensions_mut().insert(Arc::new(self));
                 response
@@ -70,11 +63,4 @@ impl IntoResponse for Error {
             }
         }
     }
-}
-
-impl From<anyhow::Error> for Error {
-    fn from(value: anyhow::Error) -> Self {
-        Error::Anyhow(value)
-    }
-    // add code here
 }

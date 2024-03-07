@@ -94,9 +94,7 @@ async fn upload_handler(
 
     if has_file {
         //First we store the reference
-        let asset = Asset::create(mm.clone(), &token, &mut asset_to_create)
-            .await
-            .map_err(Error::ModelManager)?;
+        let asset = Asset::create(mm.clone(), &token, &mut asset_to_create).await?;
 
         //copy the id to the the response
         resp.id = asset.memo_id
@@ -117,15 +115,10 @@ async fn download_handler(
     Query(params): Query<DownloadParams>,
 ) -> Result<impl IntoResponse> {
     // Read the asset from the database
-    let asset = Asset::read_by_memo_id(mm.clone(), &params.file.unwrap_or_default())
-        .await
-        .map_err(Error::ModelManager)?;
+    let asset = Asset::read_by_memo_id(mm.clone(), &params.file.unwrap_or_default()).await?;
 
     // If the asset has a password we need to make sure you are allowed to
-    if !asset
-        .check_password(params.password.unwrap_or_default())
-        .map_err(Error::ModelManager)?
-    {
+    if !asset.check_password(params.password.unwrap_or_default())? {
         return Ok(StatusCode::UNAUTHORIZED.into_response());
     }
 
@@ -149,9 +142,7 @@ async fn paste_handler(
     if body.content.is_empty() {
         return Ok(StatusCode::BAD_REQUEST.into_response());
     }
-    let text = Text::create(mm.clone(), &mut body)
-        .await
-        .map_err(Error::ModelManager)?;
+    let text = Text::create(mm.clone(), &mut body).await?;
 
     let res = CreateResponse {
         id: text.id.id.to_string(),
@@ -180,9 +171,7 @@ async fn copy_handler(
         return Ok(StatusCode::BAD_REQUEST.into_response());
     }
 
-    let text = Text::read(mm.clone(), params.id, params.password)
-        .await
-        .map_err(Error::ModelManager)?;
+    let text = Text::read(mm.clone(), params.id, params.password).await?;
 
     let res = CopyResponse {
         content: text.content,

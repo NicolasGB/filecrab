@@ -108,7 +108,7 @@ impl ModelManager {
         Ok(bucket)
     }
 
-    pub async fn upload<S, E>(&self, file_name: &str, stream: S) -> anyhow::Result<()>
+    pub async fn upload<S, E>(&self, file_name: &str, stream: S) -> Result<()>
     where
         S: Stream<Item = std::result::Result<Bytes, E>>,
         E: Into<BoxError>,
@@ -129,7 +129,7 @@ impl ModelManager {
         Ok(())
     }
 
-    pub async fn download(&self, file_name: &str) -> anyhow::Result<(ResponseDataStream, usize)> {
+    pub async fn download(&self, file_name: &str) -> Result<(ResponseDataStream, usize)> {
         // We get the head of the object to be able to access the size of it
         let (head, _) = self.bucket.head_object(file_name).await?;
 
@@ -143,7 +143,7 @@ impl ModelManager {
         &self.db
     }
 
-    pub async fn delete_files(&self, file_names: Vec<String>) -> anyhow::Result<()> {
+    pub async fn delete_files(&self, file_names: Vec<String>) -> Result<()> {
         for name in file_names.iter() {
             self.bucket.delete_object(name).await?;
         }
