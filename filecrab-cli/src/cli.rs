@@ -28,8 +28,6 @@ pub struct Cli {
     cmd: Command,
     #[clap(skip)]
     config: Config,
-    #[clap(skip)]
-    client: Client,
 }
 
 /// Represents the CLI subcommands.
@@ -114,9 +112,6 @@ impl Cli {
     pub async fn run(mut self) -> Result<()> {
         // Loads the config.
         self.load_config().await?;
-
-        // Creates a new HTTP client.
-        self.client = Client::new();
 
         // Handles the subcommand.
         match self.cmd.clone() {
@@ -215,8 +210,7 @@ impl Cli {
         form = form.part("file", Part::bytes(bytes).file_name(file_name));
 
         // Sends the request.
-        let res: UploadResponse = self
-            .client
+        let res: UploadResponse = Client::new()
             .post(format!("{url}/api/upload"))
             .header("filecrab-key", api_key)
             .multipart(form)
@@ -253,8 +247,7 @@ impl Cli {
         }
 
         // Sends the request.
-        let res = self
-            .client
+        let res = Client::new()
             .get(format!("{url}/api/download"))
             .header("filecrab-key", api_key)
             .query(&query)
@@ -342,8 +335,7 @@ impl Cli {
         let Config { url, api_key } = &self.config;
 
         // Sends the request.
-        let res: PasteResponse = self
-            .client
+        let res: PasteResponse = Client::new()
             .post(format!("{url}/api/paste"))
             .json(&PasteBody { content, pwd })
             .header("filecrab-key", api_key)
@@ -366,8 +358,7 @@ impl Cli {
         let query = vec![("id", id), ("password", pwd)];
 
         // Sends the request.
-        let res: CopyResponse = self
-            .client
+        let res: CopyResponse = Client::new()
             .get(format!("{url}/api/copy"))
             .query(&query)
             .header("filecrab-key", api_key)
