@@ -8,7 +8,7 @@ pub enum ModelManagerError {
     //Minio Related errors
     #[error("invalid minio credentials: {0}")]
     MinioCredentials(#[from] CredentialsError),
-    #[error("s3 error {0}")]
+    #[error(transparent)]
     S3Error(#[from] S3Error),
 
     //SurrealDB

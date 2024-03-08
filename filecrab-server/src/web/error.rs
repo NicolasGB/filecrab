@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::multipart::MultipartError, http::StatusCode, response::IntoResponse};
 use thiserror::Error;
-use tracing::error;
+use tracing::{error, info};
 
 use crate::model::ModelManagerError;
 
@@ -46,6 +46,16 @@ impl IntoResponse for Error {
                     ModelManagerError::CreateText(_) => StatusCode::CONFLICT,
                     ModelManagerError::SearchText(_) => StatusCode::BAD_REQUEST,
                     ModelManagerError::TextNotFound => StatusCode::NOT_FOUND,
+                    ModelManagerError::S3Error(e) => {
+                        if let s3::error::S3Error::HttpFailWithBody(status_code, _body) = e {
+                            //Try and return the status code form the inner S3 error, otherwise
+                            //return an internal server error
+                            StatusCode::from_u16(*status_code)
+                                .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+                        } else {
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        }
+                    }
                     _ => StatusCode::INTERNAL_SERVER_ERROR,
                 };
 
