@@ -1,6 +1,4 @@
-use std::ops::Add;
-
-use chrono::{prelude::*, Duration};
+use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::{Datetime, Thing};
 
@@ -31,8 +29,7 @@ impl Asset {
         // Add an expire time if it's not set
         if data.expire.is_none() {
             // If nothing is set default to the config's default expire time
-            let now = Utc::now();
-            let exp = now.add(Duration::hours(config().DEFAULT_EXPIRE_TIME as i64));
+            let exp = Utc::now() + config().DEFAULT_EXPIRE_TIME;
             data.expire = Some(exp.into());
         }
 

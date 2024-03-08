@@ -16,4 +16,10 @@ pub enum Error {
 
     #[error("error initializing server tcp listener: {0}")]
     CouldNotInitTcpListener(&'static str),
+
+    #[error("error converting value to hours")]
+    CouldNotConvertToHours,
+
+    #[error("could not parse int from string {0}")]
+    CouldNotParseInt(String),
 }

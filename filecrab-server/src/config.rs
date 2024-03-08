@@ -1,5 +1,7 @@
 use std::{env, sync::OnceLock};
 
+use chrono::TimeDelta;
+
 use crate::{Error, Result};
 
 //We want to get the config only once
@@ -22,7 +24,7 @@ pub struct Config {
     pub S3_SECRET_KEY: String,
 
     pub MAXIMUM_FILE_SIZE: usize,
-    pub DEFAULT_EXPIRE_TIME: usize,
+    pub DEFAULT_EXPIRE_TIME: TimeDelta,
 
     pub DB_HOST: String,
     pub DB_NS: String,
@@ -46,10 +48,7 @@ impl Config {
                 eprintln!("{err}");
                 Error::InvalidEnvType("MAXIMUM_FILE_SIZE")
             })?,
-            DEFAULT_EXPIRE_TIME: get_env("DEFAULT_EXPIRE_TIME")?.parse().map_err(|err| {
-                eprintln!("{err}");
-                Error::InvalidEnvType("DEFAULT_EXPIRE_TIME")
-            })?,
+            DEFAULT_EXPIRE_TIME: convert_to_hours(get_env("DEFAULT_EXPIRE_TIME")?)?,
 
             DB_HOST: get_env("DB_HOST")?,
             DB_NS: get_env("DB_NS")?,
@@ -63,4 +62,11 @@ impl Config {
 
 fn get_env(name: &'static str) -> Result<String> {
     env::var(name).map_err(|_| Error::ConfigMissingEnv(name))
+}
+
+fn convert_to_hours(time: String) -> Result<TimeDelta> {
+    //Convert string to i64
+    let hours: i64 = time.parse().map_err(|_| Error::CouldNotParseInt(time))?;
+
+    TimeDelta::try_hours(hours).ok_or(Error::CouldNotConvertToHours)
 }
