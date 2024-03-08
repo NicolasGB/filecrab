@@ -1,6 +1,5 @@
 <div align="center">
   <img src="logo.png" alt="logo" />
-  <h1>filecrab</h1>
   <h3>⚡ A blazingly fast file and text sharing service ⚡</h3>
 
   ![Build](https://img.shields.io/github/actions/workflow/status/NicolasGB/filecrab/pipeline.yml?branch=main)
@@ -8,7 +7,7 @@
   ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 </div>
 
-# filecrab
+# Description
 
 You can host your own instance, simply need an S3 bucket and a surrealdb instance.
 
