@@ -26,7 +26,7 @@
     </ul>
     <h4>Encryption</h4>
     <p>
-    All data is encrypted through the <a href="https://github.com/str4d/rage">age</a> library.<br>
+    All data is encrypted through the <a href="https://github.com/str4d/rage/tree/main/age">age</a> library.<br>
     Encryption is done <strong>client side</strong>, in the cli tool, this allows us to stream files directly to the storage without the need of reading it in memory on the server.<br>
     The password is <strong>never</strong> sent to the server.
     </p>
