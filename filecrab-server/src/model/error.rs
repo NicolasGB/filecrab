@@ -44,20 +44,12 @@ pub enum ModelManagerError {
     CreateText(#[source] surrealdb::Error),
     #[error("search text error")]
     SearchText(#[source] surrealdb::Error),
+    #[error("delete text error")]
+    DeleteText(#[source] surrealdb::Error),
     #[error("text not found")]
     TextNotFound,
-
-    // Hex
-    #[error("error decoding hex")]
-    DecodeHex(#[from] hex::FromHexError),
 
     //Stdio
     #[error("std io error")]
     StdIo(#[from] std::io::Error),
-
-    // Age
-    #[error("error decrypting age file")]
-    DecryptError(#[from] age::DecryptError),
-    #[error("error encrypting age file")]
-    EncryptError(#[from] age::EncryptError),
 }

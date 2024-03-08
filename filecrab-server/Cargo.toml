@@ -33,6 +33,3 @@ chrono = "0.4"
 
 rand = "0.8"
 memorable-wordlist = "0.1"
-
-hex = { version = "0.4" }
-age = { version = "0.10" }

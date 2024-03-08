@@ -86,8 +86,6 @@ struct UploadResponse {
 #[derive(Serialize)]
 struct PasteBody {
     content: String,
-    #[serde(rename(serialize = "password"))]
-    pwd: String,
 }
 
 /// Represents the response of the paste request.
@@ -186,14 +184,7 @@ impl Cli {
             bar = bar.with_message("Encrypting file");
             bar.enable_steady_tick(Duration::from_millis(100));
 
-            bytes = {
-                let encryptor = Encryptor::with_user_passphrase(Secret::new(pwd));
-                let mut output = Vec::new();
-                let mut writer = encryptor.wrap_output(&mut output)?;
-                writer.write_all(&bytes)?;
-                writer.finish()?;
-                output
-            };
+            bytes = Cli::encrypt_slice(&bytes, pwd)?;
             bar.finish_with_message("File encrypted.")
         }
 
@@ -224,6 +215,7 @@ impl Cli {
         // Prints the ID.
         println!("The ID to share is the following:");
         println!("-> {}", res.id);
+        println!();
 
         // Copies the ID to the clipboard.
         self.copy_to_clipboard(&res.id)?;
@@ -314,13 +306,7 @@ impl Cli {
             bar = bar.with_message("Decrypting file");
             bar.enable_steady_tick(Duration::from_millis(100));
 
-            let decryptor = match Decryptor::new(&buf[..])? {
-                Decryptor::Passphrase(decryptor) => decryptor,
-                _ => unreachable!(),
-            };
-            let mut output = vec![];
-            let mut reader = decryptor.decrypt(&Secret::new(pwd), None)?;
-            reader.read_to_end(&mut output)?;
+            let output = Cli::decrypt_slice(&buf[..], pwd)?;
             bar.finish();
             output
         } else {
@@ -342,18 +328,36 @@ impl Cli {
         // Destructures the config.
         let Config { url, api_key } = &self.config;
 
+        // Set the spinner
+        let mut bar = ProgressBar::new_spinner();
+        bar = bar.with_message("Encrypting text");
+        bar.enable_steady_tick(Duration::from_millis(100));
+
+        // Encrypt the text
+        let encrypted_bytes = Cli::encrypt_slice(content.as_bytes(), pwd)?;
+        let content = hex::encode(encrypted_bytes);
+        bar.finish_with_message("Text successfully encrypted.");
+
         // Sends the request.
-        let res: PasteResponse = Client::new()
+        let res = Client::new()
             .post(format!("{url}/api/paste"))
-            .json(&PasteBody { content, pwd })
+            .json(&PasteBody { content })
             .header("filecrab-key", api_key)
             .send()
-            .await?
-            .json()
             .await?;
 
+        // Checks if there's been an error.
+        if !res.status().is_success() {
+            bail!(format!("{}", res.status().to_string()));
+        }
+
+        let body: PasteResponse = res.json().await?;
+
+        println!("The ID to share is the following:");
+        println!("-> {}", body.id);
+        println!();
         // Copies the ID to the clipboard.
-        self.copy_to_clipboard(&res.id)?;
+        self.copy_to_clipboard(&body.id)?;
         Ok(())
     }
 
@@ -363,20 +367,36 @@ impl Cli {
         let Config { url, api_key } = &self.config;
 
         // Build the query params.
-        let query = vec![("id", id), ("password", pwd)];
+        let query = vec![("memo_id", id)];
 
         // Sends the request.
-        let res: CopyResponse = Client::new()
+        let res = Client::new()
             .get(format!("{url}/api/copy"))
             .query(&query)
             .header("filecrab-key", api_key)
             .send()
-            .await?
-            .json()
             .await?;
 
+        // Checks if there's been an error.
+        if !res.status().is_success() {
+            bail!(format!("{}", res.status().to_string()));
+        }
+
+        let body: CopyResponse = res.json().await?;
+
+        // Set the spinner
+        let mut bar = ProgressBar::new_spinner();
+        bar = bar.with_message("Encrypting text");
+        bar.enable_steady_tick(Duration::from_millis(100));
+
+        // Decrypt the text
+        let encrypted_bytes = hex::decode(body.content.as_bytes())?;
+        let content = Cli::decrypt_slice(&encrypted_bytes[..], pwd)?;
+        let content = String::from_utf8_lossy(&content);
+        bar.finish_and_clear();
+
         // Copies the text to the clipboard.
-        self.copy_to_clipboard(&res.content)?;
+        self.copy_to_clipboard(&content)?;
         Ok(())
     }
 
@@ -393,5 +413,29 @@ impl Cli {
         let mut buf = String::new();
         io::stdin().read_line(&mut buf)?;
         Ok(())
+    }
+
+    /// Given a slice of bytes and a password, tries to decrypt it's values and returns the
+    /// original content.
+    /// Uses the age algorithm.
+    fn decrypt_slice(buf: &[u8], pwd: String) -> Result<Vec<u8>, anyhow::Error> {
+        let decryptor = match Decryptor::new(buf)? {
+            Decryptor::Passphrase(decryptor) => decryptor,
+            _ => unreachable!(),
+        };
+        let mut output = vec![];
+        let mut reader = decryptor.decrypt(&Secret::new(pwd), None)?;
+        reader.read_to_end(&mut output)?;
+        Ok(output)
+    }
+
+    /// Given a slice of bytes and a password encrypts the value and returns the resulting encryption.
+    fn encrypt_slice(bytes: &[u8], pwd: String) -> Result<Vec<u8>, anyhow::Error> {
+        let encryptor = Encryptor::with_user_passphrase(Secret::new(pwd));
+        let mut output = Vec::new();
+        let mut writer = encryptor.wrap_output(&mut output)?;
+        writer.write_all(bytes)?;
+        writer.finish()?;
+        Ok(output)
     }
 }
