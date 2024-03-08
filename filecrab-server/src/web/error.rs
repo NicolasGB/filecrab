@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::multipart::MultipartError, http::StatusCode, response::IntoResponse};
 use thiserror::Error;
-use tracing::{error, info};
+use tracing::error;
 
 use crate::model::ModelManagerError;
 
