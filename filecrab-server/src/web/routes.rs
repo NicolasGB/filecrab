@@ -139,7 +139,7 @@ async fn paste_handler(
     let text = Text::create(mm.clone(), &mut body).await?;
 
     let res = CreateResponse {
-        id: text.id.id.to_string(),
+        id: text.memo_id.to_string(),
     };
 
     Ok(Json(res).into_response())
@@ -147,8 +147,7 @@ async fn paste_handler(
 
 #[derive(Debug, Deserialize)]
 struct CopyParams {
-    id: String,
-    password: String,
+    memo_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -161,15 +160,19 @@ async fn copy_handler(
     State(mm): State<ModelManager>,
     Query(params): Query<CopyParams>,
 ) -> Result<Response> {
-    if params.id.is_empty() {
+    if params.memo_id.is_empty() {
         return Ok(StatusCode::BAD_REQUEST.into_response());
     }
 
-    let text = Text::read(mm.clone(), params.id, params.password).await?;
+    // Read the text
+    let text = Text::read(mm.clone(), params.memo_id).await?;
 
     let res = CopyResponse {
         content: text.content,
     };
+
+    // Delete the text once it has been copied
+    Text::delete(mm.clone(), text.id.id.to_string()).await?;
 
     Ok(Json(res).into_response())
 }

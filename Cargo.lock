@@ -1379,6 +1379,7 @@ dependencies = [
  "clap",
  "dirs",
  "futures-util",
+ "hex",
  "indicatif",
  "reqwest",
  "serde",
@@ -1390,13 +1391,11 @@ dependencies = [
 name = "filecrab-server"
 version = "0.1.0"
 dependencies = [
- "age",
  "anyhow",
  "axum",
  "chrono",
  "clap",
  "futures",
- "hex",
  "memorable-wordlist",
  "rand 0.8.5",
  "rust-s3",
