@@ -42,11 +42,13 @@ The server can be configured with environment variables, see the [example](.env.
 
 ### Running
 
-You can run the application with all required services using the following command:
+You can run the application with all required services using the following commands:
 
 ```sh
 # Build the filecrab Docker image.
 make build
+# Or if you want to build in release mode.
+# make build mode=release
 
 # Run the multi-container application.
 make up
