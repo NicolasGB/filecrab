@@ -7,30 +7,81 @@
   ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 </div>
 
-<div>
-    <h3>Description</h3>
-    <p>
-        You can host your own instance, simply need a MinIO bucket and a surrealdb instance.<br>
-        A useful cli will allow you to upload files and text to your instance. <br>
-        The server can be fully configurated with environment variables. <br>
-    </p>
-    <h3>Features</h3>
-    <ul>
-        <li>File sharing.</li>
-        <li>File expiration.</li>
-        <li>One-time text sharing.</li>
-        <li>Files <strong>optionally</strong> encrypted.</li>
-        <li>Text <strong>always</strong> encrypted.</li>
-        <li>Cleanup of expired files server side via a command executable on the server, for example with a cron job.</li>
-        <li>Memorable words lists as ids, inspired by <a href="https://github.com/magic-wormhole/magic-wormhole.rs">magic-wormhole</a>.</li>
-    </ul>
-    <h4>Encryption</h4>
-    <p>
-    All data is encrypted through the <a href="https://github.com/str4d/rage/tree/main/age">age</a> library.<br>
-    Encryption is done <strong>client side</strong>, in the cli tool, this allows us to stream files directly to the storage without the need of reading it in memory on the server.<br>
-    The password is <strong>never</strong> sent to the server.
-    </p>
-</div>
+# filecrab
 
+File and text sharing application, built on top of [MinIO](https://min.io/) and
+[SurrealDB](https://surrealdb.com/) and powered by [Rust](https://www.rust-lang.org/). You can host
+your own instance, simply need a MinIO bucket and a SurrealDB  instance.
 
+A useful [CLI](filecrab-cli) will allow you to upload files and text to your instance.
 
+## Features
+
+- File sharing.
+- File expiration.
+- One-time text sharing.
+- Files **optionally** encrypted.
+- Text **always** encrypted.
+- Server-side cleanup of expired files via a command that can be run on the server, e.g. with a cron
+  job.
+- Memorable words list for IDs, inspired by
+  [Magic Wormhole](https://github.com/magic-wormhole/magic-wormhole.rs).
+
+## Security
+
+All data is encrypted through the [age](https://github.com/str4d/rage/tree/main/age) library.
+Encryption is done **client side**, in the CLI tool, this allows us to stream files directly to the
+storage without the need of reading it in memory on the server. The password is **never** sent to
+the server.
+
+## Server
+
+### Configuration
+
+The server can be configured with environment variables, see the [example](.env.example).
+
+### Running
+
+You can run the application with all required services using the following command:
+
+```sh
+# Build the filecrab Docker image.
+make build
+
+# Run the multi-container application.
+make up
+```
+
+## CLI
+
+### Installation
+
+You can install the CLI with the following command:
+
+```sh
+cargo install --path filecrab-cli
+```
+
+### Usage
+
+You can upload a file using the following command:
+
+```sh
+filecrab-cli upload <PATH>
+```
+
+You can download a file using the following command:
+
+```sh
+filecrab-cli download <ID>
+```
+
+Please refer to the help for more information:
+
+```sh
+filecrab-cli --help
+```
+
+## License
+
+This project is licensed under the [MIT license](LICENSE).
