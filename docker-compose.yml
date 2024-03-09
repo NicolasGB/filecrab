@@ -1,8 +1,20 @@
 version: '3.8'
 
 services:
+  filecrab:
+    image: filecrab
+    depends_on:
+      - minio
+      - surrealdb
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    networks:
+      filecrab:
+
   minio:
-    image: minio/minio
+    image: minio/minio:latest
     command: "server /data --console-address \":9001\""
     env_file:
       - .env
@@ -12,20 +24,8 @@ services:
     networks:
       filecrab:
 
-  filecrab:
-    image: filecrab
-    depends_on:
-      - minio
-    ports:
-      - "8080:8080"
-    env_file:
-      - .env
-    networks:
-      filecrab:
-
   surrealdb:
     image: surrealdb/surrealdb:latest
-    container_name: surrealdb
     env_file:
       - .env
     restart: unless-stopped
@@ -34,7 +34,7 @@ services:
     ports:
       - 8000:8000
     volumes:
-      - ./sdb-data:/data
+      - ./data/sdb:/data
     networks:
       filecrab:
 
@@ -43,4 +43,3 @@ networks:
 
 volumes:
   data:
-

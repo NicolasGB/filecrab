@@ -1,6 +1,6 @@
-target/
-.git/
 .cargo/
+.git/
+Makefile
+data/
 docker-compose.yaml
-sdb-data/
-MAKEFILE
+target/
