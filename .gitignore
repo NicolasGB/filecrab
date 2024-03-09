@@ -1,4 +1,5 @@
-target/
 .cargo/
-sdb-data/
 .env
+.idea/
+data/
+target/
