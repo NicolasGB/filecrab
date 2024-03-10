@@ -21,3 +21,8 @@ build:
 rebuild: 
 	make build
 	make up
+
+## Show the logs of the filecrab container
+.PHONY: logs
+logs:
+	docker-compose logs -f filecrab
