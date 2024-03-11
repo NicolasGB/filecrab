@@ -4,7 +4,10 @@ resolver = "2"
 members = ["filecrab-server", "filecrab-cli"]
 
 [profile.release]
+codegen-units = 1
 lto = true
+opt-level = 3
+strip = true
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
