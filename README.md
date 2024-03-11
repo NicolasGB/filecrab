@@ -7,7 +7,7 @@
   ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 </div>
 
-# filecrab
+## What's Filecrab?
 
 File and text sharing application, built on top of [MinIO](https://min.io/) and
 [SurrealDB](https://surrealdb.com/) and powered by [Rust](https://www.rust-lang.org/). You can host
