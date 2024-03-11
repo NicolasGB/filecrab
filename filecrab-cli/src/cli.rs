@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     cmp::min,
     env,
-    io::{self, Read, Write},
+    io::{self, IsTerminal, Read, Write},
     path::PathBuf,
     time::Duration,
     vec,
@@ -53,11 +53,13 @@ pub enum Command {
         #[arg(long, short)]
         path: Option<PathBuf>,
     },
-    /// Paste a text and upload it to filecrab.
     Paste {
+        /// Paste a text and upload it to filecrab.
         /// Text to paste.
+        #[arg(default_value = "-")]
         content: String,
         /// Password to protect the text.
+        #[arg(long, short)]
         pwd: String,
     },
     /// Copy the text represented by the ID returned by the paste command to the clipboard.
@@ -110,7 +112,20 @@ impl Cli {
         match self.cmd.clone() {
             Command::Upload { path, pwd } => self.upload(path, pwd).await,
             Command::Download { id, pwd, path } => self.download(id, pwd, path).await,
-            Command::Paste { content, pwd } => self.paste(content, pwd).await,
+            Command::Paste { mut content, pwd } => {
+                // If the text is set empty read from piped
+                if content.eq("-") {
+                    // Check if something has been piped, if not, exit.
+                    if io::stdin().is_terminal() {
+                        bail!("You have not provided specific text nor piped anything. Run `filecrab paste -h` to understand the command.")
+                    }
+                    // Read the piped data to a string
+                    content = String::new();
+                    let stdin = io::stdin();
+                    stdin.lock().read_to_string(&mut content)?;
+                }
+                self.paste(content, pwd).await
+            }
             Command::Copy { id, pwd } => self.copy(id, pwd).await,
         }
     }
