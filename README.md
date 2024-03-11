@@ -2,7 +2,7 @@
   <img src="logo.png" alt="logo" />
   <h3>⚡ A blazingly fast file and text sharing service ⚡</h3>
 
-  ![Build](https://img.shields.io/github/actions/workflow/status/NicolasGB/filecrab/pipeline.yml?branch=main)
+  ![Build](https://img.shields.io/github/actions/workflow/status/NicolasGB/filecrab/ci.yml?branch=main)
   ![Rust](https://img.shields.io/badge/rust-1.70+-blueviolet.svg?logo=rust)
   ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 </div>
