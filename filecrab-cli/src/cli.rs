@@ -374,7 +374,7 @@ impl Cli {
         Ok(())
     }
 
-    /// Copies a text from filecrab.
+    /// Copies a text from filecrab to the user's clipboard or, if set, to a given file.
     async fn copy(&mut self, id: String, pwd: String, out: Option<PathBuf>) -> Result<()> {
         //Check if a file has been given, if so check it's falid
         let file = if let Some(path) = out {
