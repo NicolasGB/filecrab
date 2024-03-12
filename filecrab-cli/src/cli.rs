@@ -112,7 +112,7 @@ impl Cli {
             Command::Upload { path, pwd } => self.upload(path, pwd).await,
             Command::Download { id, pwd, path } => self.download(id, pwd, path).await,
             Command::Paste { content, pwd } => match content {
-                Some(content) => self.paste(content, pwd).await, 
+                Some(content) => self.paste(content, pwd).await,
                 None if io::stdin().is_terminal() => bail!("You have not provided specific text nor piped anything. Run `filecrab paste -h` to understand the command."),
                 None => {
                         let mut content = String::new();
