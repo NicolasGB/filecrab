@@ -376,6 +376,19 @@ impl Cli {
 
     /// Copies a text from filecrab.
     async fn copy(&mut self, id: String, pwd: String, out: Option<PathBuf>) -> Result<()> {
+        //Check if a file has been given, if so check it's falid
+        let file = if let Some(path) = out {
+            // Creates file with the name of the asset.
+            let file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(format!("{}", path.display()))
+                .await?;
+            Some(file)
+        } else {
+            None
+        };
+
         // Destructures the config.
         let Config { url, api_key } = &self.config;
 
@@ -408,17 +421,7 @@ impl Cli {
         let content = String::from_utf8_lossy(&content);
         bar.finish_and_clear();
 
-        if let Some(path) = out {
-            if path.file_name().is_none() {
-                bail!("Missing filename in out path.")
-            }
-            // Creates file with the name of the asset.
-            let mut file = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(format!("{}", path.display()))
-                .await?;
-
+        if let Some(mut file) = file {
             file.write_all(content.as_bytes()).await?;
         } else {
             // Copies the text to the clipboard.
