@@ -61,7 +61,7 @@ just up
 You can install the CLI with the following command:
 
 ```sh
-cargo install --path filecrab
+cargo install --path filecrab-cli
 ```
 
 ### Usage

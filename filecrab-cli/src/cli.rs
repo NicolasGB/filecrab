@@ -53,12 +53,13 @@ pub enum Command {
         #[arg(long, short)]
         path: Option<PathBuf>,
     },
-    /// Paste a text and upload it to filecrab.
-    /// Text to paste.
+    /// Paste a text and upload it to filecrab. Content can be either specified positionally or
+    /// piped.
     Paste {
+        /// Text to paste.
         content: Option<String>,
         /// Password to protect the text.
-        #[arg(long, short)]
+        #[arg(long, short = 's')]
         pwd: String,
     },
     /// Copy the text represented by the ID returned by the paste command to the clipboard.
@@ -67,6 +68,9 @@ pub enum Command {
         id: String,
         /// Password to access the text.
         pwd: String,
+        /// Optional OUT file to write the contents to (ex. myfile.txt).
+        #[arg(long, short)]
+        out: Option<PathBuf>,
     },
 }
 
@@ -120,7 +124,7 @@ impl Cli {
                         self.paste(content.trim().to_string(), pwd).await
                 }
             },
-            Command::Copy { id, pwd } => self.copy(id, pwd).await,
+            Command::Copy { id, pwd, out } => self.copy(id, pwd, out).await,
         }
     }
 
@@ -371,7 +375,7 @@ impl Cli {
     }
 
     /// Copies a text from filecrab.
-    async fn copy(&mut self, id: String, pwd: String) -> Result<()> {
+    async fn copy(&mut self, id: String, pwd: String, out: Option<PathBuf>) -> Result<()> {
         // Destructures the config.
         let Config { url, api_key } = &self.config;
 
@@ -395,7 +399,7 @@ impl Cli {
 
         // Set the spinner
         let mut bar = ProgressBar::new_spinner();
-        bar = bar.with_message("Encrypting text");
+        bar = bar.with_message("Decrypting text");
         bar.enable_steady_tick(Duration::from_millis(100));
 
         // Decrypt the text
@@ -404,8 +408,23 @@ impl Cli {
         let content = String::from_utf8_lossy(&content);
         bar.finish_and_clear();
 
-        // Copies the text to the clipboard.
-        self.copy_to_clipboard(&content)?;
+        if let Some(path) = out {
+            if path.file_name().is_none() {
+                bail!("Missing filename in out path.")
+            }
+            // Creates file with the name of the asset.
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(format!("{}", path.display()))
+                .await?;
+
+            file.write_all(content.as_bytes()).await?;
+        } else {
+            // Copies the text to the clipboard.
+            self.copy_to_clipboard(&content)?;
+        }
+
         Ok(())
     }
 
