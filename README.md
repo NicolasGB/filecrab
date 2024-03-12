@@ -46,12 +46,12 @@ You can run the application with all required services using the following comma
 
 ```sh
 # Build the filecrab Docker image.
-make build
+just build
 # Or if you want to build in release mode.
-# make build mode=release
+# just build release
 
 # Run the multi-container application.
-make up
+just up
 ```
 
 ## CLI
