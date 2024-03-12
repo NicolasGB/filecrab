@@ -9,7 +9,7 @@ build mode="debug":
 
 # Build and up
 rebuild mode="debug":
-  just build mode={{mode}}
+  just build {{mode}}
   just up
 
 # Run the multi-container application
