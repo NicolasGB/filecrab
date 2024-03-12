@@ -3,6 +3,10 @@ name = "filecrab-cli"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "filecrab"
+path = "src/main.rs"
+
 [dependencies]
 age = { version = "0.10" }
 anyhow = { workspace = true }

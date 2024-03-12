@@ -13,7 +13,7 @@ File and text sharing application, built on top of [MinIO](https://min.io/) and
 [SurrealDB](https://surrealdb.com/) and powered by [Rust](https://www.rust-lang.org/). You can host
 your own instance, simply need a MinIO bucket and a SurrealDB  instance.
 
-A useful [CLI](filecrab-cli) will allow you to upload files and text to your instance.
+A useful [CLI](filecrab) will allow you to upload files and text to your instance.
 
 ## Features
 
@@ -61,7 +61,7 @@ make up
 You can install the CLI with the following command:
 
 ```sh
-cargo install --path filecrab-cli
+cargo install --path filecrab
 ```
 
 ### Usage
@@ -69,19 +69,19 @@ cargo install --path filecrab-cli
 You can upload a file using the following command:
 
 ```sh
-filecrab-cli upload <PATH>
+filecrab upload <PATH>
 ```
 
 You can download a file using the following command:
 
 ```sh
-filecrab-cli download <ID>
+filecrab download <ID>
 ```
 
 Please refer to the help for more information:
 
 ```sh
-filecrab-cli --help
+filecrab --help
 ```
 
 ## License
