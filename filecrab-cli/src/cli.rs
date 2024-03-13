@@ -377,17 +377,17 @@ impl Cli {
     /// Copies a text from filecrab to the user's clipboard or, if set, to a given file.
     async fn copy(&mut self, id: String, pwd: String, out: Option<PathBuf>) -> Result<()> {
         //Check if a file has been given, if so check it's falid
-        let file = if let Some(path) = out {
+        if let Some(ref path) = out {
             // Creates file with the name of the asset.
-            let file = OpenOptions::new()
+            let _ = OpenOptions::new()
                 .write(true)
                 .create_new(true)
-                .open(format!("{}", path.display()))
+                .open(path)
                 .await?;
-            Some(file)
-        } else {
-            None
-        };
+
+            // Now that we know the file can be oppened and created when delete it.
+            fs::remove_file(path).await?
+        }
 
         // Destructures the config.
         let Config { url, api_key } = &self.config;
@@ -421,7 +421,13 @@ impl Cli {
         let content = String::from_utf8_lossy(&content);
         bar.finish_and_clear();
 
-        if let Some(mut file) = file {
+        if let Some(path) = out {
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(path)
+                .await?;
+
             file.write_all(content.as_bytes()).await?;
         } else {
             // Copies the text to the clipboard.
