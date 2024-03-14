@@ -489,7 +489,7 @@ impl Cli {
             file.write_all(content.as_bytes())
                 .await
                 .map_err(|err| Error::WriteToWriter {
-                    typ: String::from("file"),
+                    r#type: String::from("file"),
                     source: err,
                 })?;
         } else {
@@ -530,7 +530,7 @@ impl Cli {
         reader
             .read_to_end(&mut output)
             .map_err(|err| Error::ReadFromReader {
-                typ: String::from("decrypt"),
+                r#type: String::from("decrypt"),
                 source: err,
             })?;
         Ok(output)
@@ -546,7 +546,7 @@ impl Cli {
         writer
             .write_all(bytes)
             .map_err(|err| Error::WriteToWriter {
-                typ: String::from("encryption"),
+                r#type: String::from("encryption"),
                 source: err,
             })?;
         writer.finish().map_err(Error::FinishEncryption)?;
