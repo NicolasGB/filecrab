@@ -1,5 +1,5 @@
+use crate::{error::Error, Result};
 use age::{secrecy::Secret, Decryptor, Encryptor};
-use anyhow::{bail, Ok, Result};
 use arboard::Clipboard;
 use clap::{Parser, Subcommand};
 use futures_util::StreamExt;
@@ -107,7 +107,7 @@ struct CopyResponse {
 
 impl Cli {
     /// Runs the CLI.
-    pub async fn run(mut self) -> Result<()> {
+    pub async fn run(mut self) -> Result {
         // Loads the config.
         self.load_config().await?;
 
@@ -117,11 +117,14 @@ impl Cli {
             Command::Download { id, pwd, path } => self.download(id, pwd, path).await,
             Command::Paste { content, pwd } => match content {
                 Some(content) => self.paste(content, pwd).await,
-                None if io::stdin().is_terminal() => bail!("You have not provided specific text nor piped anything. Run `filecrab paste -h` to understand the command."),
+                None if io::stdin().is_terminal() => Err(Error::NoPipedContent),
                 None => {
-                        let mut content = String::new();
-                        io::stdin().lock().read_to_string(&mut content)?;
-                        self.paste(content.trim().to_string(), pwd).await
+                    let mut content = String::new();
+                    io::stdin()
+                        .lock()
+                        .read_to_string(&mut content)
+                        .map_err(Error::LockStdIn)?;
+                    self.paste(content.trim().to_string(), pwd).await
                 }
             },
             Command::Copy { id, pwd, out } => self.copy(id, pwd, out).await,
@@ -129,11 +132,11 @@ impl Cli {
     }
 
     /// Loads the config.
-    async fn load_config(&mut self) -> Result<()> {
+    async fn load_config(&mut self) -> Result {
         // Builds the path to the config file.
         let config_path = match dirs::config_dir() {
             Some(config_dir) => config_dir.join("filecrab/config.toml"),
-            None => bail!("Could not locate config directory which is mandatory for filecrab"),
+            None => return Err(Error::ConfigNotFound),
         };
 
         // Prompts the user to set the config if it does not exist.
@@ -142,7 +145,14 @@ impl Cli {
         }
 
         // Deserializes the config.
-        self.config = toml::from_str(&fs::read_to_string(&config_path).await?)?;
+        self.config = toml::from_str(&fs::read_to_string(&config_path).await.map_err(|err| {
+            Error::ReadFile {
+                path: format!("{}", config_path.display()),
+                source: err,
+            }
+        })?)
+        .map_err(Error::ParseToml)?;
+
         Ok(())
     }
 
@@ -152,22 +162,36 @@ impl Cli {
         println!("The config file is not set, we're going to create it.");
         println!("Enter the complete URL of your filecrab (ex: https://my-filecrab-instance.com):");
         let mut url = String::new();
-        io::stdin().read_line(&mut url)?;
+        io::stdin().read_line(&mut url).map_err(Error::ReadStdIn)?;
         let url = url.trim().to_string();
 
         // Reads the API key from the stdin.
         println!("Enter the API key:");
         let mut api_key = String::new();
-        io::stdin().read_line(&mut api_key)?;
+        io::stdin()
+            .read_line(&mut api_key)
+            .map_err(Error::ReadStdIn)?;
+
         let api_key = api_key.trim().to_string();
 
         // Builds the config and writes it to the file.
         let parent = match path.parent() {
             Some(parent) => parent,
-            None => bail!("Could not retrieve the parent directory of the config file"),
+            None => return Err(Error::NoParentDir),
         };
-        fs::create_dir_all(parent).await?;
-        fs::write(path, &toml::to_string(&Config { url, api_key })?).await?;
+
+        fs::create_dir_all(parent)
+            .await
+            .map_err(Error::CreateConfigDir)?;
+        fs::write(
+            path,
+            &toml::to_string(&Config { url, api_key }).map_err(Error::SerializeToml)?,
+        )
+        .await
+        .map_err(|err| Error::WriteFile {
+            path: format!("{}", path.display()),
+            source: err,
+        })?;
 
         // Prints the completion message.
         println!();
@@ -183,7 +207,10 @@ impl Cli {
         let Config { url, api_key } = &self.config;
 
         // Reads the file.
-        let mut bytes = fs::read(&path).await?;
+        let mut bytes = fs::read(&path).await.map_err(|err| Error::ReadFile {
+            path: format!("{}", path.display()),
+            source: err,
+        })?;
 
         // Initializes the form.
         let mut form = Form::new();
@@ -222,7 +249,8 @@ impl Cli {
             .send()
             .await?
             .json()
-            .await?;
+            .await
+            .map_err(Error::ReqwestJsonParse)?;
         bar.finish_with_message("File correctly uploaded.");
 
         // Prints the ID.
@@ -264,20 +292,23 @@ impl Cli {
 
         // Checks if there's been an error.
         if !res.status().is_success() {
-            bail!(format!("{}", res.status().to_string()));
+            let status = res.status().to_string();
+            let body = res.bytes().await.map_err(Error::ReqwestReadBody)?;
+            let body = String::from_utf8(body.to_vec())?;
+            return Err(Error::UnsuccessfulRequest { status, body });
         }
 
         // Gets the filename from headers.
         let file_name = match res.headers().get("filecrab-file-name") {
             Some(file_name) => file_name.to_str()?.to_string(),
-            None => bail!("Could not retrieve the file name from the headers"),
+            None => return Err(Error::MissingFileNameInHeaders),
         };
 
         // Computes the destination path.
         let path = if let Some(path) = path {
             path
         } else {
-            env::current_dir()?
+            env::current_dir().map_err(Error::CurrentDir)?
         };
 
         // Creates file with the name of the asset.
@@ -285,7 +316,11 @@ impl Cli {
             .write(true)
             .create_new(true)
             .open(format!("{}/{}", path.display(), file_name))
-            .await?;
+            .await
+            .map_err(|err| Error::OpenFile {
+                path: format!("{}", path.display()),
+                source: err,
+            })?;
 
         // Gets the content length for the progress bar.
         let total_size = res.content_length().unwrap_or_default();
@@ -307,7 +342,9 @@ impl Cli {
         // Reads the stream.
         while let Some(data) = stream.next().await {
             let chunk = data?;
-            tokio::io::copy(&mut chunk.as_ref(), &mut buf).await?;
+            tokio::io::copy(&mut chunk.as_ref(), &mut buf)
+                .await
+                .map_err(Error::CopyChunk)?;
             let pos = min(downloaded + (chunk.len() as u64), total_size);
             downloaded = pos;
             pb.set_position(pos);
@@ -327,7 +364,12 @@ impl Cli {
         };
 
         // Writes the file.
-        file.write_all(&bytes).await?;
+        file.write_all(&bytes)
+            .await
+            .map_err(|err| Error::WriteFile {
+                path: format!("{}", path.display()),
+                source: err,
+            })?;
 
         // Finishes the progress bar.
         pb.finish_with_message(format!(
@@ -361,7 +403,10 @@ impl Cli {
 
         // Checks if there's been an error.
         if !res.status().is_success() {
-            bail!(format!("{}", res.status().to_string()));
+            let status = res.status().to_string();
+            let body = res.bytes().await.map_err(Error::ReqwestReadBody)?;
+            let body = String::from_utf8(body.to_vec())?;
+            return Err(Error::UnsuccessfulRequest { status, body });
         }
 
         let body: PasteResponse = res.json().await?;
@@ -383,10 +428,16 @@ impl Cli {
                 .write(true)
                 .create_new(true)
                 .open(path)
-                .await?;
+                .await
+                .map_err(|err| Error::OpenFile {
+                    path: format!("{}", path.display()),
+                    source: err,
+                })?;
 
             // Now that we know the file can be oppened and created when delete it.
-            fs::remove_file(path).await?
+            fs::remove_file(path)
+                .await
+                .map_err(|_| Error::DeleteTempFile)?
         }
 
         // Destructures the config.
@@ -405,7 +456,10 @@ impl Cli {
 
         // Checks if there's been an error.
         if !res.status().is_success() {
-            bail!(format!("{}", res.status().to_string()));
+            let status = res.status().to_string();
+            let body = res.bytes().await.map_err(Error::ReqwestReadBody)?;
+            let body = String::from_utf8(body.to_vec())?;
+            return Err(Error::UnsuccessfulRequest { status, body });
         }
 
         let body: CopyResponse = res.json().await?;
@@ -425,10 +479,19 @@ impl Cli {
             let mut file = OpenOptions::new()
                 .write(true)
                 .create_new(true)
-                .open(path)
-                .await?;
+                .open(path.clone())
+                .await
+                .map_err(|err| Error::OpenFile {
+                    path: format!("{}", path.display()),
+                    source: err,
+                })?;
 
-            file.write_all(content.as_bytes()).await?;
+            file.write_all(content.as_bytes())
+                .await
+                .map_err(|err| Error::WriteToWriter {
+                    typ: String::from("file"),
+                    source: err,
+                })?;
         } else {
             // Copies the text to the clipboard.
             self.copy_to_clipboard(&content)?;
@@ -448,31 +511,45 @@ impl Cli {
         // Prompts the user to press enter to exit.
         println!("Press Enter to exit...");
         let mut buf = String::new();
-        io::stdin().read_line(&mut buf)?;
+        io::stdin().read_line(&mut buf).map_err(Error::ReadStdIn)?;
         Ok(())
     }
 
     /// Given a slice of bytes and a password, tries to decrypt it's values and returns the
     /// original content.
     /// Uses the age algorithm.
-    fn decrypt_slice(buf: &[u8], pwd: String) -> Result<Vec<u8>, anyhow::Error> {
-        let decryptor = match Decryptor::new(buf)? {
+    fn decrypt_slice(buf: &[u8], pwd: String) -> Result<Vec<u8>> {
+        let decryptor = match Decryptor::new(buf).map_err(Error::CreateDecryptor)? {
             Decryptor::Passphrase(decryptor) => decryptor,
             _ => unreachable!(),
         };
         let mut output = vec![];
-        let mut reader = decryptor.decrypt(&Secret::new(pwd), None)?;
-        reader.read_to_end(&mut output)?;
+        let mut reader = decryptor
+            .decrypt(&Secret::new(pwd), None)
+            .map_err(Error::FailedToDecrypt)?;
+        reader
+            .read_to_end(&mut output)
+            .map_err(|err| Error::ReadFromReader {
+                typ: String::from("decrypt"),
+                source: err,
+            })?;
         Ok(output)
     }
 
     /// Given a slice of bytes and a password encrypts the value and returns the resulting encryption.
-    fn encrypt_slice(bytes: &[u8], pwd: String) -> Result<Vec<u8>, anyhow::Error> {
+    fn encrypt_slice(bytes: &[u8], pwd: String) -> Result<Vec<u8>> {
         let encryptor = Encryptor::with_user_passphrase(Secret::new(pwd));
         let mut output = Vec::new();
-        let mut writer = encryptor.wrap_output(&mut output)?;
-        writer.write_all(bytes)?;
-        writer.finish()?;
+        let mut writer = encryptor
+            .wrap_output(&mut output)
+            .map_err(Error::EncryptionWriterWrap)?;
+        writer
+            .write_all(bytes)
+            .map_err(|err| Error::WriteToWriter {
+                typ: String::from("encryption"),
+                source: err,
+            })?;
+        writer.finish().map_err(Error::FinishEncryption)?;
         Ok(output)
     }
 }

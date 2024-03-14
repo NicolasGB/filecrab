@@ -203,12 +203,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea50b14b7a4b9343f8c627a7a53c52076482bd4bdad0a24fd3ec533ed616cc2c"
 
 [[package]]
-name = "anyhow"
-version = "1.0.81"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0952808a6c2afd1aa8947271f3a60f1a6763c7b912d210184c5149b5cf147247"
-
-[[package]]
 name = "approx"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -699,9 +693,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.14.3"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2ef034f05691a48569bd920a96c81b9d91bbad1ab5ac7c4616c1f6ef36cb79f"
+checksum = "5d6d68c57235a3a081186990eca2867354726650f42f7516ca50c28d6281fd15"
 
 [[package]]
 name = "byteorder"
@@ -1374,7 +1368,6 @@ name = "filecrab-cli"
 version = "0.1.0"
 dependencies = [
  "age",
- "anyhow",
  "arboard",
  "clap",
  "dirs",
@@ -1383,6 +1376,7 @@ dependencies = [
  "indicatif",
  "reqwest",
  "serde",
+ "thiserror",
  "tokio",
  "toml 0.8.11",
 ]
@@ -1391,7 +1385,6 @@ dependencies = [
 name = "filecrab-server"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "axum",
  "chrono",
  "clap",
