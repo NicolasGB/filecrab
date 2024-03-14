@@ -74,7 +74,7 @@ pub enum Error {
     ReqwestReadBody(#[source] reqwest::Error),
 
     // Filecrab Response
-    #[error("could not parse json from reqwest response")]
+    #[error("Unsuccessful request. \nStatus: {status}\nBody: {body}")]
     UnsuccessfulRequest { status: String, body: String },
     #[error("could not retrieve the file name from the headers")]
     MissingFileNameInHeaders,
