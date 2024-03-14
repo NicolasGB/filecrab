@@ -60,10 +60,10 @@ pub enum Error {
     FailedToDecrypt(#[source] DecryptError),
 
     // Reader and Writer
-    #[error("could not write to {typ} writer")]
-    WriteToWriter { typ: String, source: io::Error },
-    #[error("could not read from {typ} reader")]
-    ReadFromReader { typ: String, source: io::Error },
+    #[error("could not write to {r#type} writer")]
+    WriteToWriter { r#type: String, source: io::Error },
+    #[error("could not read from {r#type} reader")]
+    ReadFromReader { r#type: String, source: io::Error },
 
     //Http
     #[error("reqwest error")]
