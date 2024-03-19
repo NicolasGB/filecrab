@@ -3,6 +3,9 @@ name = "filecrab-server"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+rocksdb = ["surrealdb/kv-rocksdb"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -26,8 +29,8 @@ thiserror = { workspace = true }
 
 clap = { workspace = true }
 
-rust-s3 = { version = "0.34.0-rc3", features = ["with-tokio"] }
 surrealdb = { version = "1" }
+rust-s3 = { version = "0.34.0-rc3", features = ["with-tokio"] }
 chrono = "0.4"
 
 rand = "0.8"

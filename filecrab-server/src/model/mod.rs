@@ -8,22 +8,35 @@ pub use error::{ModelManagerError, Result};
 
 use axum::{body::Bytes, BoxError};
 use futures::{Stream, TryStreamExt};
-use surrealdb::{
-    engine::remote::ws::{Client, Ws},
-    opt::auth::Root,
-    Surreal,
-};
+use surrealdb::{opt::auth::Root, Surreal};
 use tokio_util::io::StreamReader;
 
 use crate::config::config;
 use s3::{creds::Credentials, request::ResponseDataStream, Bucket, BucketConfiguration, Region};
+
+#[cfg(not(feature = "rocksdb"))]
+/// If the feature rocksdb is not enabled, use a websocket connection
+/// This is the default behaviour.
+type Endpoint = surrealdb::engine::remote::ws::Ws;
+
+#[cfg(feature = "rocksdb")]
+/// If the feature rocksdb is enabled , use rocksdb as engine
+type Endpoint = surrealdb::engine::local::RocksDb;
+
+#[cfg(not(feature = "rocksdb"))]
+/// If the feature rocksdb is not enabled, the connection type is based on a client
+type SurrealConnection = Surreal<surrealdb::engine::remote::ws::Client>;
+
+#[cfg(feature = "rocksdb")]
+/// If the feature rocksdb is enabled, the connection type is based directly on the embedded db.
+type SurrealConnection = Surreal<surrealdb::engine::local::Db>;
 
 #[derive(Debug, Clone)]
 pub struct ModelManager {
     //Bucket is clonable as its references are behind an arc
     bucket: Bucket,
     //Surrealdb is also clonable
-    db: Surreal<Client>,
+    db: SurrealConnection,
 }
 
 impl ModelManager {
@@ -37,9 +50,9 @@ impl ModelManager {
 
     /// Function that tries to connect to the SurrealDB instance and panics if it doesn't achieve
     /// it
-    async fn connect_db() -> Result<Surreal<Client>> {
+    async fn connect_db() -> Result<SurrealConnection> {
         //SurrealDB
-        let db = Surreal::new::<Ws>(&config().DB_HOST)
+        let db = Surreal::new::<Endpoint>(&config().DB_HOST)
             .await
             .map_err(ModelManagerError::NewDB)?;
 
@@ -139,7 +152,7 @@ impl ModelManager {
         Ok((r, head.content_length.unwrap_or_default() as usize))
     }
 
-    pub fn db(&self) -> &Surreal<Client> {
+    pub fn db(&self) -> &SurrealConnection {
         &self.db
     }
 
