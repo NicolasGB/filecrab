@@ -29,7 +29,9 @@ jobs:
         run: cargo clippy --all-features --tests -- -Dwarnings
 
       - name: Test
-        run: cargo test
+        run: |
+          cargo test
+          cargo test --all-features
 
   format:
     name: Format
