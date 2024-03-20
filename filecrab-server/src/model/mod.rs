@@ -8,7 +8,7 @@ pub use error::{ModelManagerError, Result};
 
 use axum::{body::Bytes, BoxError};
 use futures::{Stream, TryStreamExt};
-use surrealdb::{opt::auth::Root, Surreal};
+use surrealdb::Surreal;
 use tokio_util::io::StreamReader;
 
 use crate::config::config;
@@ -56,8 +56,9 @@ impl ModelManager {
             .await
             .map_err(ModelManagerError::NewDB)?;
 
+        #[cfg(not(feature = "rocksdb"))]
         let _ = db
-            .signin(Root {
+            .signin(surrealdb::opt::auth::Root {
                 username: &config().DB_USER,
                 password: &config().DB_PASSWORD,
             })

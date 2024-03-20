@@ -20,8 +20,11 @@ pub enum ModelManagerError {
         db: String,
         source: surrealdb::Error,
     },
+
+    #[cfg(not(feature = "rocksdb"))]
     #[error("error signing in the database")]
     SignIn(#[source] surrealdb::Error),
+
     #[error("error defining table")]
     CouldNotDefineTable(#[source] surrealdb::Error),
     #[error("error setting index")]

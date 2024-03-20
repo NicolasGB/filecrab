@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   filecrab:
@@ -10,12 +10,14 @@ services:
       - "8080:8080"
     env_file:
       - .env
+    volumes:
+      - data:/data
     networks:
       filecrab:
 
   minio:
     image: minio/minio:latest
-    command: "server /data --console-address \":9001\""
+    command: 'server /data --console-address ":9001"'
     env_file:
       - .env
     ports:
