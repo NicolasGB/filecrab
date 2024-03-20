@@ -4,12 +4,12 @@ default:
   @just --list --unsorted
 
 # Build the filecrab Docker image
-build mode="debug":
-  docker build  . -t filecrab --build-arg BUILD_MODE={{mode}}
+build features="" mode="debug":
+  docker build  . -t filecrab --build-arg BUILD_MODE={{mode}} --build-arg FEATURES={{features}}
 
 # Build and up
-rebuild mode="debug":
-  just build {{mode}}
+rebuild features="" mode="debug":
+  just build {{mode}} {{features}}
   just up
 
 # Run the multi-container application
