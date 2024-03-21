@@ -32,7 +32,7 @@ jobs:
         with:
           repo_token: ${{ secrets.FILECRABDEPLOYMENT }}
           file: target/release/filecrab
-          asset_name: filecrab-${{ github.ref }}
+          asset_name: filecrab
           tag: ${{ github.ref }}
           overwrite: true
           body: ""
