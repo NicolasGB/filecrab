@@ -1,0 +1,38 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  release-cli:
+    name: Release CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build CLI bin
+        run: cargo build --package filecrab-cli --release
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/release/filecrab
+          asset_name: filecrab-${{ github.ref }}
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: ""
