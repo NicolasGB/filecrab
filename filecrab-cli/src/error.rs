@@ -2,6 +2,7 @@ use std::{io, string::FromUtf8Error};
 
 use age::{DecryptError, EncryptError};
 use indicatif::style::TemplateError;
+use inquire::InquireError;
 use reqwest::header::ToStrError;
 use thiserror::Error;
 
@@ -96,4 +97,8 @@ pub enum Error {
     // Progressbar
     #[error(transparent)]
     Template(#[from] TemplateError),
+
+    // Inquire
+    #[error("could not prompt the user")]
+    Inquire(#[from] InquireError),
 }
