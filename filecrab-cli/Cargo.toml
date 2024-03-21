@@ -14,10 +14,11 @@ clap = { workspace = true }
 futures-util = { workspace = true }
 dirs = { version = "5.0" }
 indicatif = { version = "0.17" }
-reqwest = { version = "0.11", features = ["multipart", "json", "stream"] }
+reqwest = { version = "0.12", features = ["multipart", "json", "stream"] }
 serde = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 toml = { version = "0.8" }
+inquire = { version = "0.7" }
 
 hex = { version = "0.4" }

@@ -4,6 +4,7 @@ use arboard::Clipboard;
 use clap::{Parser, Subcommand};
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
+use inquire::{validator::Validation, Text};
 use reqwest::{
     multipart::{Form, Part},
     Client,
@@ -160,19 +161,27 @@ impl Cli {
     async fn prompt_config(&self, path: &PathBuf) -> Result<()> {
         // Reads the URL from the stdin.
         println!("The config file is not set, we're going to create it.");
-        println!("Enter the complete URL of your filecrab (ex: https://my-filecrab-instance.com):");
-        let mut url = String::new();
-        io::stdin().read_line(&mut url).map_err(Error::ReadStdIn)?;
+        println!();
+
+        // Ask the user for the url
+        let url = Text::new("Enter the complete URL of your filecrab:")
+            .with_validator(|val: &str| {
+                if !val.contains("http://") && !val.contains("https://") {
+                    return Ok(Validation::Invalid(
+                        "The given url is missing the `http(s)://` prefix.".into(),
+                    ));
+                }
+                Ok(Validation::Valid)
+            })
+            .with_help_message(
+                "The `http(s)` prefix is mandatory! You should also set the port if needed.",
+            )
+            .prompt()?;
+
         let url = url.trim().to_string();
 
         // Reads the API key from the stdin.
-        println!("Enter the API key:");
-        let mut api_key = String::new();
-        io::stdin()
-            .read_line(&mut api_key)
-            .map_err(Error::ReadStdIn)?;
-
-        let api_key = api_key.trim().to_string();
+        let api_key = Text::new("Enter the API key:").prompt()?.trim().to_string();
 
         // Builds the config and writes it to the file.
         let parent = match path.parent() {
