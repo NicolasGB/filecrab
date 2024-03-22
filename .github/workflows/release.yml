@@ -9,20 +9,16 @@ jobs:
   release-cli:
     name: Release CLI
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Rust cache
-        uses: actions/cache@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.77
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          components: clippy, rustfmt
 
       - name: Build CLI bin
         run: cargo build --package filecrab-cli --release

@@ -12,18 +12,17 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.77
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
 
       - name: Lint
         run: cargo clippy --all-features --tests -- -Dwarnings
@@ -36,8 +35,15 @@ jobs:
   format:
     name: Format
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.77
+        with:
+          components: rustfmt
 
       - name: Format
         run: cargo fmt --all -- --check
