@@ -53,6 +53,8 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: nicolasgoutte/filecrab
+          flavor: |
+            latest=false
 
       - name: Build and push Docker images
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
@@ -84,13 +86,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: nicolasgoutte/filecrab
+          flavor: |
+            latest=false
+            prefix=rocksdb
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: nicolasgoutte/filecrab:rocksdb-${{ github.ref_name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_MODE=release 
             FEATURES=rocksdb
