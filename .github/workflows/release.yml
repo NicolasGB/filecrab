@@ -88,7 +88,7 @@ jobs:
           images: nicolasgoutte/filecrab
           flavor: |
             latest=false
-            prefix=rocksdb
+            prefix=rocksdb-
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
