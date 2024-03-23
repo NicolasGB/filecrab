@@ -35,6 +35,26 @@ Encryption is done **client side**, in the CLI tool, this allows us to stream fi
 storage without the need of reading it in memory on the server. The password is **never** sent to
 the server.
 
+## Table of Contents
+
+- [Installation](#installation)
+  - [Server](#server)
+    - [Configuration](#configuration)
+    - [Running](#running)
+  - [CLI](#cli)
+    - [Installation](#installation-1)
+      - [From source](#from-source)
+      - [From GitHub](#from-github)
+    - [Usage](#usage)
+      - [Set up](#set-up)
+      - [Files](#files)
+        - [Upload](#upload)
+        - [Download](#download)
+      - [Text](#text)
+        - [Paste](#paste)
+        - [Copy](#copy)
+      - [Help](#help)
+
 ## Server
 
 ### Configuration
