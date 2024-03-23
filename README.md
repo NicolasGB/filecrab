@@ -27,6 +27,7 @@ A useful [CLI](filecrab) will allow you to upload files and text to your instanc
   job.
 - Memorable words list for IDs, inspired by
   [Magic Wormhole](https://github.com/magic-wormhole/magic-wormhole.rs).
+- Server can be run in distant or embedded mode.
 
 ## Security
 
@@ -39,8 +40,11 @@ the server.
 
 - [Installation](#installation)
   - [Server](#server)
-    - [Configuration](#configuration)
-    - [Running](#running)
+    - [Local](#local)
+      - [Configuration](#configuration)
+      - [Running](#running)
+    - [Docker](#docker)
+    - [Deployment](#deployment)
   - [CLI](#cli)
     - [Installation](#installation-1)
       - [From source](#from-source)
@@ -53,15 +57,17 @@ the server.
       - [Text](#text)
         - [Paste](#paste)
         - [Copy](#copy)
-      - [Help](#help)
+    - [Help](#help)
 
 ## Server
 
-### Configuration
+### Local
+
+#### Configuration
 
 The server can be configured with environment variables, see the [example](.env.example).
 
-### Running
+#### Running
 
 You can run the application with all required services using the following commands:
 
@@ -74,6 +80,33 @@ just build
 # Run the multi-container application.
 just up
 ```
+
+### Docker
+
+Filecrab is also available as a [Docker Image](https://hub.docker.com/repository/docker/nicolasgoutte/filecrab).
+
+There are two types of images available:
+
+- `nicolasgoutte/filecrab:<TAG>` - Is the main image that runs the server and will connect to `surrealdb` via a websocket.
+- `nicolasgoutte/filecrab:rocksdb-<TAG>` - Is an alternative image that runs the server and has an embedded `rocksdb` engine, meaning that there is **no need** to deploy a surrealdb, but data is written to the disk.
+
+> [!NOTE]
+> For more information on surrealdb, please refer to the [documentation](https://surrealdb.com/docs/surrealdb/introduction/architecture).
+
+Chose the image that best fits your needs.
+
+### Deployment
+
+To deploy the server, you need to set up the following services:
+
+- [MinIO](https://min.io/docs/minio/linux/operations/installation.html) - To store the files.
+- [SurrealDB](https://surrealdb.com/docs/surrealdb/deployment/) - To store the metadata. (Not needed if running the `rocksdb` image).
+- [Traefik](https://doc.traefik.io/traefik/getting-started/quick-start/) - To handle the reverse proxy. (Or any alternative to expose the server to the internet).
+- [Filecrab](https://hub.docker.com/repository/docker/nicolasgoutte/filecrab) - The server itself.
+
+#### Server configuration
+
+Please refer to the [example](.env.example) for the server configuration.
 
 ## CLI
 
@@ -185,7 +218,7 @@ Filecrab will by default copy to the clipboard the content of the text. But you 
 filecrab copy <ID> <PWD> --output
 ```
 
-### Help
+#### Help
 
 All the commands have a help message that can be accessed with the `--help` flag:
 
