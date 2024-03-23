@@ -185,7 +185,7 @@ Filecrab will by default copy to the clipboard the content of the text. But you 
 filecrab copy <ID> <PWD> --output
 ```
 
-#### Help
+### Help
 
 All the commands have a help message that can be accessed with the `--help` flag:
 
