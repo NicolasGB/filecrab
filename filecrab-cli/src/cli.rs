@@ -40,7 +40,7 @@ pub enum Command {
         /// Path to the file to upload.
         path: PathBuf,
         /// Password to protect the file.
-        #[arg(long, short = 's')]
+        #[arg(long)]
         pwd: Option<String>,
     },
     /// Download the file represented by the ID returned by the upload command.
@@ -48,7 +48,7 @@ pub enum Command {
         /// Memorable ID.
         id: String,
         /// Password to access the file.
-        #[arg(long, short = 's')]
+        #[arg(long)]
         pwd: Option<String>,
         /// Path to the destination file (default to the current directory).
         #[arg(long, short)]
@@ -60,7 +60,7 @@ pub enum Command {
         /// Text to paste.
         content: Option<String>,
         /// Password to protect the text.
-        #[arg(long, short = 's')]
+        #[arg(long)]
         pwd: String,
     },
     /// Copy the text represented by the ID returned by the paste command to the clipboard.
