@@ -14,13 +14,13 @@ File and text sharing application, built on top of [MinIO](https://min.io/) and
 [SurrealDB](https://surrealdb.com/) and powered by [Rust](https://www.rust-lang.org/). You can host
 your own instance, simply need a MinIO bucket and a SurrealDB instance.
 
-A useful [CLI](filecrab) will allow you to upload files and text to your instance.
+A useful [CLI](#cli) will allow you to upload files and text to your instance.
 
 ## Features
 
 - File sharing.
 - File expiration.
-- One-time text sharing.
+- **One-time** text sharing.
 - Files **optionally** encrypted.
 - Text **always** encrypted.
 - Server-side cleanup of expired files via a command that can be run on the server, e.g. with a cron
@@ -80,6 +80,12 @@ just build
 # Run the multi-container application.
 just up
 ```
+
+> [!IMPORTANT]
+> You will need to have [just](https://github.com/casey/just) installed to run the commands.
+
+> [!NOTE]
+> The server will be available at `http://localhost:8080`.
 
 ### Docker
 
