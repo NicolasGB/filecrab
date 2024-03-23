@@ -26,7 +26,7 @@ pub struct Config {
     pub MAXIMUM_FILE_SIZE: usize,
     pub DEFAULT_EXPIRE_TIME: TimeDelta,
 
-    pub DB_HOST: String,
+    pub DB_HOST_OR_PATH: String,
     pub DB_NS: String,
     pub DB_DBNAME: String,
     pub DB_USER: String,
@@ -50,7 +50,7 @@ impl Config {
             })?,
             DEFAULT_EXPIRE_TIME: convert_to_hours(get_env("DEFAULT_EXPIRE_TIME")?)?,
 
-            DB_HOST: get_env("DB_HOST")?,
+            DB_HOST_OR_PATH: get_env("DB_HOST_OR_PATH")?,
             DB_NS: get_env("DB_NS")?,
             DB_DBNAME: get_env("DB_DBNAME")?,
             DB_USER: get_env("DB_USER")?,

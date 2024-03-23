@@ -52,7 +52,7 @@ impl ModelManager {
     /// it
     async fn connect_db() -> Result<SurrealConnection> {
         //SurrealDB
-        let db = Surreal::new::<Endpoint>(&config().DB_HOST)
+        let db = Surreal::new::<Endpoint>(&config().DB_HOST_OR_PATH)
             .await
             .map_err(ModelManagerError::NewDB)?;
 
