@@ -6,7 +6,7 @@ mod web;
 
 use crate::{
     cli::Boot,
-    model::{asset::Asset, ModelManager},
+    model::{asset::Asset, text::Text, ModelManager},
     web::routes::routes,
 };
 
@@ -82,6 +82,9 @@ async fn main() -> Result<()> {
             let res = Asset::clean_assets(mm.clone()).await.unwrap();
             // Delete assets from the minio
             mm.delete_files(res).await.unwrap();
+
+            // Delete text
+            Text::clean_text(mm).await.unwrap();
         }
     }
 

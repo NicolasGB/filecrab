@@ -1,21 +1,25 @@
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use surrealdb::sql::Thing;
+use surrealdb::sql::{Datetime, Thing};
 
 use super::error::{ModelManagerError, Result};
-use crate::model::ModelManager;
+use crate::{config::config, model::ModelManager};
 
 #[derive(Serialize, Deserialize)]
 pub struct Text {
     pub id: Thing,
     pub content: String,
     pub memo_id: String,
+    expire: Datetime,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct TextToCreate {
     pub content: String,
     #[serde(skip_deserializing)]
-    pub memo_id: String,
+    memo_id: String,
+    #[serde(skip_deserializing)]
+    expire: Datetime,
 }
 
 impl Text {
@@ -23,6 +27,10 @@ impl Text {
         let db = mm.db();
         // Set a memo_id
         data.memo_id = memorable_wordlist::snake_case(40);
+
+        // Set expire
+        let expire = Utc::now() + config().DEFAULT_EXPIRE_TIME;
+        data.expire = expire.into();
 
         let res: Vec<Text> = db
             .create("text")
@@ -54,6 +62,20 @@ impl Text {
 
         let _: Option<Text> = db
             .delete(("text", id))
+            .await
+            .map_err(ModelManagerError::DeleteText)?;
+
+        Ok(())
+    }
+
+    pub async fn clean_text(mm: ModelManager) -> Result<()> {
+        let db = mm.db();
+
+        let now: Datetime = Utc::now().into();
+
+        let _ = db
+            .query("DELETE text WHERE expire <= $now")
+            .bind(("now", &now))
             .await
             .map_err(ModelManagerError::DeleteText)?;
 
