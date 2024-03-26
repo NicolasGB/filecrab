@@ -12,7 +12,7 @@ pub enum ModelManagerError {
     S3Error(#[from] S3Error),
 
     //SurrealDB
-    #[error("error connecting to new database")]
+    #[error("error connecting to new database: {0}")]
     NewDB(#[source] surrealdb::Error),
     #[error("error setting namespace: {ns} and database: {db}")]
     SetUseNSandDb {
