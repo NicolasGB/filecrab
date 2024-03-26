@@ -9,7 +9,7 @@ build features="" mode="debug":
 
 # Build and up
 rebuild features="" mode="debug":
-  just build {{mode}} {{features}}
+  just build {{features}} {{mode}}
   just up
 
 # Run the multi-container application

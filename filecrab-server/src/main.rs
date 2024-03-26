@@ -6,6 +6,7 @@ mod web;
 
 use crate::{
     cli::Boot,
+    config::config,
     model::{asset::Asset, text::Text, ModelManager},
     web::routes::routes,
 };
@@ -18,7 +19,8 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use std::time::Duration;
+use clokwerk::{AsyncScheduler, TimeUnits};
+use std::{sync::Arc, time::Duration};
 use tokio::{net::TcpListener, signal};
 use tower::ServiceBuilder;
 use tower_http::{
@@ -37,10 +39,10 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let mm = ModelManager::new().await.map_err(|err| {
+    let mm = Arc::new(ModelManager::new().await.map_err(|err| {
         eprintln!("{err}");
         Error::CouldNotInitModelManager
-    })?;
+    })?);
 
     match mode {
         Boot::Server => {
@@ -65,7 +67,27 @@ async fn main() -> Result<()> {
                 HeaderValue::from_static("application/json"),
             );
 
-            let routes = Router::new().merge(routes(mm)).layer(middleware);
+            // Setup cleaning with a schedule
+            let mut scheduler = AsyncScheduler::with_tz(chrono::Utc);
+            // Clone because borrowchecker :)
+            let mmc = mm.clone();
+            scheduler
+                .every(config().CLEANUP_INTERVAL.seconds())
+                .run(move || {
+                    let mmc = mmc.clone();
+                    async move { clean_database(mmc).await }
+                });
+            // Spawn task that will run and clean
+            tokio::spawn(async move {
+                loop {
+                    // Run pending jobs
+                    scheduler.run_pending().await;
+                    // Sleep for a second
+                    tokio::time::sleep(Duration::from_millis(1000)).await;
+                }
+            });
+
+            let routes = Router::new().merge(routes(mm.clone())).layer(middleware);
 
             let listener = TcpListener::bind("0.0.0.0:8080")
                 .await
@@ -79,12 +101,12 @@ async fn main() -> Result<()> {
                 .unwrap();
         }
         Boot::Clean => {
-            let res = Asset::clean_assets(mm.clone()).await.unwrap();
-            // Delete assets from the minio
-            mm.delete_files(res).await.unwrap();
-
-            // Delete text
-            Text::clean_text(mm).await.unwrap();
+            // let res = Asset::clean_assets(mm.clone()).await.unwrap();
+            // // Delete assets from the minio
+            // mm.delete_files(res).await.unwrap();
+            //
+            // // Delete text
+            // Text::clean_text(mm).await.unwrap();
         }
     }
 
@@ -109,4 +131,14 @@ async fn shutdown_signal() {
         _ = ctrl_c => {}
         _ = terminate => {}
     }
+}
+
+async fn clean_database(mm: Arc<ModelManager>) {
+    info!("Cleaning databases");
+    let res = Asset::clean_assets(&mm).await.unwrap();
+    // Delete assets from the minio
+    mm.delete_files(res).await.unwrap();
+
+    // Delete text
+    Text::clean_text(&mm).await.unwrap();
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     body::Body,
     debug_handler,
@@ -21,7 +23,7 @@ use crate::{
     web::{middleware::api_key_mw, Error, Result},
 };
 
-pub fn routes(mm: ModelManager) -> Router {
+pub fn routes(mm: Arc<ModelManager>) -> Router {
     Router::new()
         .route("/api/upload", post(upload_handler))
         .route("/api/download", get(download_handler))
@@ -42,7 +44,7 @@ struct CreateResponse {
 
 #[debug_handler]
 async fn upload_handler(
-    State(mm): State<ModelManager>,
+    State(mm): State<Arc<ModelManager>>,
     mut multipart: Multipart,
 ) -> Result<Json<CreateResponse>> {
     //First we generate an id which will be used for the file and the db
@@ -110,7 +112,7 @@ struct DownloadParams {
 
 #[debug_handler]
 async fn download_handler(
-    State(mm): State<ModelManager>,
+    State(mm): State<Arc<ModelManager>>,
     Query(params): Query<DownloadParams>,
 ) -> Result<impl IntoResponse> {
     // Read the asset from the database
@@ -130,7 +132,7 @@ async fn download_handler(
 
 #[debug_handler]
 async fn paste_handler(
-    State(mm): State<ModelManager>,
+    State(mm): State<Arc<ModelManager>>,
     Json(mut body): Json<TextToCreate>,
 ) -> Result<Response> {
     if body.content.is_empty() {
@@ -157,7 +159,7 @@ struct CopyResponse {
 
 #[debug_handler]
 async fn copy_handler(
-    State(mm): State<ModelManager>,
+    State(mm): State<Arc<ModelManager>>,
     Query(params): Query<CopyParams>,
 ) -> Result<Response> {
     if params.memo_id.is_empty() {

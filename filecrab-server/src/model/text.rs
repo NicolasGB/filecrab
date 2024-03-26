@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::{Datetime, Thing};
@@ -23,7 +25,7 @@ pub struct TextToCreate {
 }
 
 impl Text {
-    pub async fn create(mm: ModelManager, data: &mut TextToCreate) -> Result<Text> {
+    pub async fn create(mm: Arc<ModelManager>, data: &mut TextToCreate) -> Result<Text> {
         let db = mm.db();
         // Set a memo_id
         data.memo_id = memorable_wordlist::snake_case(40);
@@ -43,7 +45,7 @@ impl Text {
             .ok_or_else(|| ModelManagerError::TextNotFound)
     }
 
-    pub async fn read(mm: ModelManager, memo_id: String) -> Result<Text> {
+    pub async fn read(mm: Arc<ModelManager>, memo_id: String) -> Result<Text> {
         let db = mm.db();
 
         let res: Option<Text> = db
@@ -57,7 +59,7 @@ impl Text {
         res.ok_or_else(|| ModelManagerError::TextNotFound)
     }
 
-    pub async fn delete(mm: ModelManager, id: String) -> Result<()> {
+    pub async fn delete(mm: Arc<ModelManager>, id: String) -> Result<()> {
         let db = mm.db();
 
         let _: Option<Text> = db
@@ -68,7 +70,7 @@ impl Text {
         Ok(())
     }
 
-    pub async fn clean_text(mm: ModelManager) -> Result<()> {
+    pub async fn clean_text(mm: &Arc<ModelManager>) -> Result<()> {
         let db = mm.db();
 
         let now: Datetime = Utc::now().into();
