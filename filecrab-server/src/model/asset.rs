@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::{Datetime, Thing};
@@ -25,11 +23,7 @@ pub struct AssetToCreate {
 }
 
 impl Asset {
-    pub async fn create(
-        mm: Arc<ModelManager>,
-        id: &str,
-        data: &mut AssetToCreate,
-    ) -> Result<Asset> {
+    pub async fn create(mm: ModelManager, id: &str, data: &mut AssetToCreate) -> Result<Asset> {
         let db = mm.db();
 
         // Add an expire time if it's not set
@@ -51,7 +45,7 @@ impl Asset {
         res.ok_or_else(|| ModelManagerError::AssetNotFound)
     }
 
-    pub async fn read_by_memo_id(mm: Arc<ModelManager>, memo_id: &str) -> Result<Asset> {
+    pub async fn read_by_memo_id(mm: ModelManager, memo_id: &str) -> Result<Asset> {
         let db = mm.db();
 
         let res: Option<Asset> = db
@@ -65,7 +59,7 @@ impl Asset {
         res.ok_or_else(|| ModelManagerError::AssetNotFound)
     }
 
-    pub async fn clean_assets(mm: &Arc<ModelManager>) -> Result<Vec<String>> {
+    pub async fn clean_assets(mm: ModelManager) -> Result<Vec<String>> {
         let db = mm.db();
 
         let now: Datetime = Utc::now().into();
