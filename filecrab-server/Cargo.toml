@@ -27,8 +27,6 @@ tracing-subscriber = { workspace = true }
 
 thiserror = { workspace = true }
 
-clap = { workspace = true }
-
 surrealdb = { version = "1" }
 rust-s3 = { version = "0.34.0-rc3", features = ["with-tokio"] }
 chrono = "0.4"
