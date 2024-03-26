@@ -25,6 +25,7 @@ pub struct Config {
 
     pub MAXIMUM_FILE_SIZE: usize,
     pub DEFAULT_EXPIRE_TIME: TimeDelta,
+    pub CLEANUP_INTERVAL: u32,
 
     pub DB_HOST_OR_PATH: String,
     pub DB_NS: String,
@@ -49,6 +50,10 @@ impl Config {
                 Error::InvalidEnvType("MAXIMUM_FILE_SIZE")
             })?,
             DEFAULT_EXPIRE_TIME: convert_to_hours(get_env("DEFAULT_EXPIRE_TIME")?)?,
+            CLEANUP_INTERVAL: get_env("CLEANUP_INTERVAL")?.parse().map_err(|err| {
+                eprintln!("{err}");
+                Error::InvalidEnvType("CLEANUP_INTERVAL")
+            })?,
 
             DB_HOST_OR_PATH: get_env("DB_HOST_OR_PATH")?,
             DB_NS: get_env("DB_NS")?,
