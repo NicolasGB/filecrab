@@ -19,9 +19,6 @@ pub enum Error {
     #[error("error reading multipart file")]
     ReadingMultipartFile(#[from] MultipartError),
 
-    #[error("the set expire time: {0}, is invalid")]
-    InvalidExpireTime(String),
-
     #[error(transparent)]
     Http(axum::http::Error),
 }
