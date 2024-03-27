@@ -23,8 +23,7 @@ A useful [CLI](#cli) will allow you to upload files and text to your instance.
 - **One-time** text sharing.
 - Files **optionally** encrypted.
 - Text **always** encrypted.
-- Server-side cleanup of expired files via a command that can be run on the server, e.g. with a cron
-  job.
+- Server-side cleanup of expired files and text based on user defined interval.
 - Memorable words list for IDs, inspired by
   [Magic Wormhole](https://github.com/magic-wormhole/magic-wormhole.rs).
 - Server can be run in distant or embedded mode.
