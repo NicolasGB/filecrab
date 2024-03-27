@@ -2,6 +2,11 @@
 name = "filecrab-cli"
 version = "0.1.0"
 edition = "2021"
+authors = ["Nicolas Gouttefangeas"]
+license = "MIT"
+repository = "https://github.com/NicolasGB/filecrab"
+description = "A CLI to share files and text with Filecrab"
+readme = "../README.md"
 
 [[bin]]
 name = "filecrab"
