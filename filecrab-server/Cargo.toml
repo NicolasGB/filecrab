@@ -2,6 +2,11 @@
 name = "filecrab-server"
 version = "0.1.0"
 edition = "2021"
+authors = ["Nicolas Gouttefangeas"]
+license = "MIT"
+repository = "https://github.com/NicolasGB/filecrab"
+description = "A blazingly fast file and text sharing service"
+readme = "../README.md"
 
 [features]
 rocksdb = ["surrealdb/kv-rocksdb"]
