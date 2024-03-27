@@ -75,22 +75,12 @@ async fn upload_handler(
                 let encrypted_string = String::from_utf8_lossy(&encrypted_bytes).to_string();
                 asset_to_create.encrypted = encrypted_string.to_lowercase().eq("true");
             }
-            "expire" => {
-                let expire_bytes = field.bytes().await?.to_vec();
-                let expire_string = String::from_utf8_lossy(&expire_bytes).to_string();
-                asset_to_create.expire = Some(
-                    expire_string
-                        .clone()
-                        .try_into()
-                        .map_err(|_| Error::InvalidExpireTime(expire_string))?,
-                );
-            }
             _ => {}
         }
     }
 
     //If we got a file, time to upload buddy
-    let mut resp = CreateResponse { id: "".to_string() };
+    let mut resp = CreateResponse { id: String::new() };
 
     if has_file {
         //First we store the reference
