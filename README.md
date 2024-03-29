@@ -5,6 +5,7 @@
 ![Build](https://img.shields.io/github/actions/workflow/status/NicolasGB/filecrab/ci.yml?branch=main)
 ![Rust](https://img.shields.io/badge/rust-1.70+-blueviolet.svg?logo=rust)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![AUR Version](https://img.shields.io/aur/version/filecrab-bin)
 
 </div>
 
@@ -45,6 +46,7 @@ the server.
   - [Deployment](#deployment)
 - [CLI](#cli)
   - [Installation](#installation)
+    - [Arch Linux](#arch-linux)
     - [From source](#from-source)
     - [From GitHub](#from-github)
   - [Usage](#usage)
@@ -115,6 +117,16 @@ Please refer to the [example](.env.example) for the server configuration.
 ## CLI
 
 ### Installation
+
+#### Arch Linux
+
+Use an AUR helper to install the package:
+
+Here is an example with [paru](https://github.com/Morganamilo/paru)
+
+```sh
+paru -S filecrab-bin
+```
 
 #### From source
 
