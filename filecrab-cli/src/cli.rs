@@ -251,15 +251,22 @@ impl Cli {
         bar.enable_steady_tick(Duration::from_millis(100));
 
         // Sends the request.
-        let res: UploadResponse = Client::new()
+        let res = Client::new()
             .post(format!("{url}/api/upload"))
             .header("filecrab-key", api_key)
             .multipart(form)
             .send()
-            .await?
-            .json()
-            .await
-            .map_err(Error::ReqwestJsonParse)?;
+            .await?;
+
+        // Checks if there's been an error.
+        if !res.status().is_success() {
+            let status = res.status().to_string();
+            let body = res.bytes().await.map_err(Error::ReqwestReadBody)?;
+            let body = String::from_utf8(body.to_vec())?;
+            return Err(Error::UnsuccessfulRequest { status, body });
+        }
+
+        let res: UploadResponse = res.json().await.map_err(Error::ReqwestJsonParse)?;
         bar.finish_with_message("File correctly uploaded.");
 
         // Prints the ID.
