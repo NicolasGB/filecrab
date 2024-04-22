@@ -13,14 +13,15 @@ pub use self::error::{Error, Result};
 
 use axum::{
     body::Bytes,
-    http::{header, HeaderValue},
+    http::{header, HeaderName, HeaderValue},
     Router,
 };
 use clokwerk::{AsyncScheduler, TimeUnits};
-use std::time::Duration;
+use std::{iter::once, time::Duration};
 use tokio::{net::TcpListener, signal};
 use tower::ServiceBuilder;
 use tower_http::{
+    sensitive_headers::SetSensitiveHeadersLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
     LatencyUnit, ServiceBuilderExt,
 };
@@ -39,8 +40,11 @@ async fn main() -> Result<()> {
         Error::CouldNotInitModelManager
     })?;
 
+    let filecrab_header = HeaderName::from_static("filecrab-key");
+
     // Build our middleware stack
     let middleware = ServiceBuilder::new()
+        .layer(SetSensitiveHeadersLayer::new(once(filecrab_header)))
             // Add high level tracing/logging to all requests
             .layer(
                 TraceLayer::new_for_http()
