@@ -1,10 +1,12 @@
-use crate::{error::Error, Result};
+mod config;
+
+use crate::{cli::config::Instance, error::Error, Result};
 use age::{secrecy::Secret, Decryptor, Encryptor};
 use arboard::Clipboard;
 use clap::{Parser, Subcommand};
+use config::Config;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
-use inquire::{validator::Validation, Text};
 use reqwest::{
     multipart::{Form, Part},
     Client,
@@ -73,13 +75,8 @@ pub enum Command {
         #[arg(long, short)]
         out: Option<PathBuf>,
     },
-}
-
-/// Represents the CLI config.
-#[derive(Deserialize, Serialize, Default)]
-struct Config {
-    url: String,
-    api_key: String,
+    /// Allows the user to switch the active instance in filecrab
+    Switch,
 }
 
 /// Represents the response of the upload request.
@@ -110,7 +107,7 @@ impl Cli {
     /// Runs the CLI.
     pub async fn run(mut self) -> Result {
         // Loads the config.
-        self.load_config().await?;
+        self.config = Config::load_config().await?;
 
         // Handles the subcommand.
         match self.cmd.clone() {
@@ -129,91 +126,15 @@ impl Cli {
                 }
             },
             Command::Copy { id, pwd, out } => self.copy(id, pwd, out).await,
+            Command::Switch => self.switch().await,
         }
-    }
-
-    /// Loads the config.
-    async fn load_config(&mut self) -> Result {
-        // Builds the path to the config file.
-        let config_path = match dirs::config_dir() {
-            Some(config_dir) => config_dir.join("filecrab/config.toml"),
-            None => return Err(Error::ConfigNotFound),
-        };
-
-        // Prompts the user to set the config if it does not exist.
-        if !config_path.exists() {
-            self.prompt_config(&config_path).await?;
-        }
-
-        // Deserializes the config.
-        self.config = toml::from_str(&fs::read_to_string(&config_path).await.map_err(|err| {
-            Error::ReadFile {
-                path: format!("{}", config_path.display()),
-                source: err,
-            }
-        })?)
-        .map_err(Error::ParseToml)?;
-
-        Ok(())
-    }
-
-    /// Prompts the user to set the config and saves it.
-    async fn prompt_config(&self, path: &PathBuf) -> Result<()> {
-        // Reads the URL from the stdin.
-        println!("The config file is not set, we're going to create it.");
-        println!();
-
-        // Ask the user for the url
-        let url = Text::new("Enter the complete URL of your filecrab:")
-            .with_validator(|val: &str| {
-                if !val.contains("http://") && !val.contains("https://") {
-                    return Ok(Validation::Invalid(
-                        "The given url is missing the `http(s)://` prefix.".into(),
-                    ));
-                }
-                Ok(Validation::Valid)
-            })
-            .with_help_message(
-                "The `http(s)` prefix is mandatory! You should also set the port if needed.",
-            )
-            .prompt()?;
-
-        let url = url.trim().to_string();
-
-        // Reads the API key from the stdin.
-        let api_key = Text::new("Enter the API key:").prompt()?.trim().to_string();
-
-        // Builds the config and writes it to the file.
-        let parent = match path.parent() {
-            Some(parent) => parent,
-            None => return Err(Error::NoParentDir),
-        };
-
-        fs::create_dir_all(parent)
-            .await
-            .map_err(Error::CreateConfigDir)?;
-        fs::write(
-            path,
-            &toml::to_string(&Config { url, api_key }).map_err(Error::SerializeToml)?,
-        )
-        .await
-        .map_err(|err| Error::WriteFile {
-            path: format!("{}", path.display()),
-            source: err,
-        })?;
-
-        // Prints the completion message.
-        println!();
-        println!("Thanks, your file has been written in {path:?}. You can modify it manually.");
-        println!("Enjoy pinching files and text! BLAZINGLY FAST!");
-        println!();
-        Ok(())
     }
 
     /// Uploads a file to filecrab.
     async fn upload(&mut self, path: PathBuf, pwd: Option<String>) -> Result<()> {
         // Destructures the config.
-        let Config { url, api_key } = &self.config;
+        let Instance { url, api_key, name } = &self.config.get_active_instance();
+        println!("Active filecrab instance: {name}");
 
         // Reads the file.
         let mut bytes = fs::read(&path).await.map_err(|err| Error::ReadFile {
@@ -287,7 +208,8 @@ impl Cli {
         path: Option<PathBuf>,
     ) -> Result<()> {
         // Destructures the config.
-        let Config { url, api_key } = &self.config;
+        let Instance { url, api_key, name } = &self.config.get_active_instance();
+        println!("Active filecrab instance: {name}");
 
         // Build the query params.
         let query: Vec<(&str, &str)> = vec![("file", &id)];
@@ -397,7 +319,8 @@ impl Cli {
     /// Pastes a text to filecrab.
     async fn paste(&mut self, content: String, pwd: String) -> Result<()> {
         // Destructures the config.
-        let Config { url, api_key } = &self.config;
+        let Instance { url, api_key, name } = &self.config.get_active_instance();
+        println!("Active filecrab instance: {name}");
 
         // Set the spinner
         let mut bar = ProgressBar::new_spinner();
@@ -435,6 +358,11 @@ impl Cli {
         Ok(())
     }
 
+    // Switches the filecrab instance
+    async fn switch(&mut self) -> Result {
+        self.config.switch_instance().await
+    }
+
     /// Copies a text from filecrab to the user's clipboard or, if set, to a given file.
     async fn copy(&mut self, id: String, pwd: String, out: Option<PathBuf>) -> Result<()> {
         //Check if a file has been given, if so check it's falid
@@ -457,7 +385,11 @@ impl Cli {
         }
 
         // Destructures the config.
-        let Config { url, api_key } = &self.config;
+        let Instance {
+            url,
+            api_key,
+            name: _,
+        } = &self.config.get_active_instance();
 
         // Build the query params.
         let query = vec![("memo_id", id)];

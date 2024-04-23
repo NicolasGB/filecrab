@@ -17,9 +17,13 @@ pub enum Error {
     CreateConfigDir(#[source] io::Error),
     #[error("could not retrieve the parent directory of the config file")]
     NoParentDir,
+    #[error("there are no other instances of filecrab currently")]
+    NoOtherInstances,
+    #[error("the instance you are trying to set does not exist within filecrab's config")]
+    InstanceNotFound,
 
     // Toml
-    #[error("could not parse config toml")]
+    #[error("could not parse config toml: {0}")]
     ParseToml(#[source] toml::de::Error),
     #[error("could not serialize config toml")]
     SerializeToml(#[source] toml::ser::Error),
