@@ -1,7 +1,7 @@
 use crate::{error::Error, Result};
-use std::path::PathBuf;
+use std::{mem, path::PathBuf};
 
-use inquire::{validator::Validation, Select, Text};
+use inquire::{validator::Validation, InquireError, Select, Text};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
@@ -9,26 +9,27 @@ const CONFIG_PATH: &str = "filecrab/config.toml";
 
 /// Represents the CLI config.
 #[derive(Deserialize, Serialize, Default)]
-pub(crate) struct Config {
-    pub(crate) active: Instance,
-    pub(crate) others: Option<Vec<Instance>>,
+pub(super) struct Config {
+    pub(super) active: Instance,
+    pub(super) others: Option<Vec<Instance>>,
 }
 
+/// Represents a filecrab instance
 #[derive(Deserialize, Serialize, Default, Clone)]
-pub(crate) struct Instance {
-    pub(crate) name: String,
-    pub(crate) url: String,
-    pub(crate) api_key: String,
+pub(super) struct Instance {
+    pub(super) name: String,
+    pub(super) url: String,
+    pub(super) api_key: String,
 }
 
 impl Config {
     /// Returns the active instance
-    pub(crate) fn get_active_instance(&self) -> &Instance {
+    pub(super) fn get_active_instance(&self) -> &Instance {
         &self.active
     }
 
     /// Loads the config.
-    pub(crate) async fn load_config() -> Result<Config> {
+    pub(super) async fn load_config() -> Result<Config> {
         // Builds the path to the config file.
         let config_path = match dirs::config_dir() {
             Some(config_dir) => config_dir.join(CONFIG_PATH),
@@ -102,14 +103,20 @@ impl Config {
     // Prompts the user to get the input of a new instance
     async fn prompt_instance_input() -> Result<Instance> {
         let instance_name = Text::new("What's the filecrab instance's name?")
-            .prompt()?
+            .prompt()
+            .map_err(|err| match err {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    Error::UserCancel
+                }
+                _ => err.into(),
+            })?
             .to_string();
 
         // Ask the user for the url
         let url = Text::new("Enter the complete URL of your filecrab:")
             .with_initial_value("https://")
             .with_validator(|val: &str| {
-                if !val.contains("http://") && !val.contains("https://") {
+                if !val.starts_with("http://") && !val.starts_with("https://") {
                     return Ok(Validation::Invalid(
                         "The given url is missing the `http(s)://` prefix.".into(),
                     ));
@@ -119,7 +126,13 @@ impl Config {
             .with_help_message(
                 "The `http(s)` prefix is mandatory! You should also set the port if needed.",
             )
-            .prompt()?;
+            .prompt()
+            .map_err(|err| match err {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    Error::UserCancel
+                }
+                _ => err.into(),
+            })?;
 
         let url = url.trim().to_string();
 
@@ -133,7 +146,7 @@ impl Config {
         })
     }
 
-    pub(crate) async fn switch_instance(&mut self) -> Result {
+    pub(super) async fn switch_instance(&mut self) -> Result {
         let others = self.others.as_mut().ok_or(Error::NoOtherInstances)?;
 
         // Collect all the names
@@ -141,25 +154,19 @@ impl Config {
 
         // Ask the user which instance to activate
         let new_name = Select::new("Which Filecrab instance do you want to activate?", names)
-            .prompt()?
+            .prompt()
+            .map_err(|err| match err {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    Error::UserCancel
+                }
+                _ => err.into(),
+            })?
             .to_string();
 
         // Find the instance to switch to
-        let pos = others.iter().position(|i| i.name == new_name);
-
-        // If no instance found return (should not happen as it's a prebuilt list)
-        if pos.is_none() {
-            return Err(Error::InstanceNotFound);
+        if let Some(new) = others.iter_mut().find(|i| i.name == new_name) {
+            mem::swap(&mut self.active, new);
         }
-
-        // Save the old active
-        let old = self.active.clone();
-
-        // Set the new active
-        self.active = others.swap_remove(pos.unwrap());
-
-        // push the old active to the others
-        others.push(old);
 
         // Create the path
         let path = match dirs::config_dir() {

@@ -105,4 +105,6 @@ pub enum Error {
     // Inquire
     #[error("could not prompt the user")]
     Inquire(#[from] InquireError),
+    #[error("Canceled.")]
+    UserCancel,
 }
