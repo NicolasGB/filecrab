@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### 🚀 Features
+
+- *(cli)* Handle multiple instances of filecrabs
+
 ## [0.1.1] - 2024-04-22
 
 ### 🐛 Bug Fixes
@@ -10,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - *(deps)* Update deps
 - *(cli)* Handle upload errors gracefully and update deps
 - *(server)* Mark filecrab key header as sensitive
+- *(changelog)* Add changelog with git cliff
 
 ## [0.1.0] - 2024-03-27
 
