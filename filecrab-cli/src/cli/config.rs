@@ -78,6 +78,7 @@ impl Config {
         Ok(())
     }
 
+    /// Writes the config to the given path
     async fn write_config(path: &PathBuf, config: &Config) -> Result {
         // Builds the config and writes it to the file.
         let parent = match path.parent() {
