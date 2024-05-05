@@ -1,7 +1,7 @@
 use crate::{error::Error, Result};
 use std::{mem, path::PathBuf};
 
-use inquire::{validator::Validation, InquireError, Select, Text};
+use inquire::{validator::Validation, Confirm, InquireError, Select, Text};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
@@ -178,8 +178,56 @@ impl Config {
         // Write the config
         Config::write_config(&path, self).await?;
 
-        println!("Successfully switched to `{new_name}`");
+        println!("Successfully switched to `{new_name}`.");
 
         Ok(())
     }
+
+    pub(super) async fn add(&mut self) -> Result {
+        // Prompt the user and get the new instance
+        println!("Adding a new instance:");
+        let new_instance = Config::prompt_instance_input().await?;
+        let new_name = new_instance.name.clone();
+
+        // Push the instance to the others
+        match self.others.as_mut() {
+            Some(others) => others.push(new_instance),
+            None => self.others = Some(vec![new_instance]),
+        }
+
+        // Prompt the user if he want's to switch it as active
+        let ans = Confirm::new("Do you want to set it as the active instance?")
+            .with_default(false)
+            .prompt()?;
+
+        // If yes, switch it
+        if ans {
+            // We unwrap as this should never fail because it has just been added
+            let others = self.others.as_mut().unwrap();
+
+            // Find the instance to switch to
+            if let Some(new) = others.iter_mut().find(|i| i.name == new_name) {
+                mem::swap(&mut self.active, new);
+            }
+        }
+
+        // Create the path
+        let path = match dirs::config_dir() {
+            Some(config_dir) => config_dir.join(CONFIG_PATH),
+            None => return Err(Error::ConfigNotFound),
+        };
+
+        // Write the config
+        Config::write_config(&path, self).await?;
+
+        if ans {
+            println!("Successfully added `{new_name}` and toggled as active.")
+        } else {
+            println!("Successfully added `{new_name}`.")
+        }
+
+        Ok(())
+    }
+
+    // pub(super)
 }
