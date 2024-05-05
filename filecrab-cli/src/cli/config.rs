@@ -60,7 +60,7 @@ impl Config {
         println!();
 
         // Get the new instance
-        let instance = Config::prompt_instance_input().await?;
+        let instance = Config::prompt_instance_input()?;
 
         // Build new config struct
         let config = Config {
@@ -102,7 +102,7 @@ impl Config {
     }
 
     // Prompts the user to get the input of a new instance
-    async fn prompt_instance_input() -> Result<Instance> {
+    fn prompt_instance_input() -> Result<Instance> {
         let instance_name = Text::new("What's the filecrab instance's name?")
             .prompt()
             .map_err(|err| match err {
@@ -186,7 +186,7 @@ impl Config {
     pub(super) async fn add(&mut self) -> Result {
         // Prompt the user and get the new instance
         println!("Adding a new instance:");
-        let new_instance = Config::prompt_instance_input().await?;
+        let new_instance = Config::prompt_instance_input()?;
         let new_name = new_instance.name.clone();
 
         // Push the instance to the others
