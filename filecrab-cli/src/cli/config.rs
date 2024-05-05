@@ -221,13 +221,11 @@ impl Config {
         Config::write_config(&path, self).await?;
 
         if ans {
-            println!("Successfully added `{new_name}` and toggled as active.")
+            println!("Successfully added `{new_name}` and switched it as active.")
         } else {
             println!("Successfully added `{new_name}`.")
         }
 
         Ok(())
     }
-
-    // pub(super)
 }
