@@ -75,8 +75,10 @@ pub enum Command {
         #[arg(long, short)]
         out: Option<PathBuf>,
     },
-    /// Allows the user to switch the active instance in filecrab
+    /// Allows the user to switch the active instance in filecrab.
     Switch,
+    /// Allows the user to add a new filecrab instance to the config.
+    Add,
 }
 
 /// Represents the response of the upload request.
@@ -127,6 +129,7 @@ impl Cli {
             },
             Command::Copy { id, pwd, out } => self.copy(id, pwd, out).await,
             Command::Switch => self.switch().await,
+            Command::Add => self.add().await,
         }
     }
 
@@ -446,6 +449,10 @@ impl Cli {
         }
 
         Ok(())
+    }
+
+    async fn add(&mut self) -> Result {
+        self.config.add().await
     }
 
     /// Sets the text to the keyboard and waits for the user to CR before returning. This will allow
