@@ -1,14 +1,14 @@
 use crate::{error::Error, Result};
-use std::{mem, path::PathBuf};
+use std::{mem, path::PathBuf, vec};
 
-use inquire::{validator::Validation, Confirm, InquireError, Select, Text};
+use inquire::{validator::Validation, Confirm, CustomUserError, InquireError, Select, Text};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
 const CONFIG_PATH: &str = "filecrab/config.toml";
 
 /// Represents the CLI config.
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, Default, Clone)]
 pub(super) struct Config {
     pub(super) active: Instance,
     pub(super) others: Option<Vec<Instance>>,
@@ -60,7 +60,7 @@ impl Config {
         println!();
 
         // Get the new instance
-        let instance = Config::prompt_instance_input()?;
+        let instance = Config::prompt_instance_input(None)?;
 
         // Build new config struct
         let config = Config {
@@ -101,9 +101,34 @@ impl Config {
         })
     }
 
-    // Prompts the user to get the input of a new instance
-    fn prompt_instance_input() -> Result<Instance> {
+    /// Prompts the user to get the input of a new instance
+    ///
+    /// INFO: As of `now prompt_instance_input` needs it's own version of config (if passed) due to the
+    /// 'static lifetime of the with_validator in inquire. Maybe one day this will be fixed in the
+    /// lib, an issue has been opened.
+    fn prompt_instance_input(config: Option<Config>) -> Result<Instance> {
         let instance_name = Text::new("What's the filecrab instance's name?")
+            .with_validator(
+                move |val: &str| -> std::result::Result<Validation, CustomUserError> {
+                    // So we make sure we don't consume the config here, consuming the config
+                    // appears to fail the 'static annotation of the closure
+                    if let Some(conf) = &config {
+                        // If either the active config or the others alredy have the given name,
+                        // refuse the validation
+                        if conf.active.name == val
+                            || conf
+                                .others
+                                .as_ref()
+                                .is_some_and(|others| others.iter().any(|i| i.name == val))
+                        {
+                            return Ok(Validation::Invalid(
+                                "This instance name is already in use.".into(),
+                            ));
+                        }
+                    }
+                    Ok(Validation::Valid)
+                },
+            )
             .prompt()
             .map_err(|err| match err {
                 InquireError::OperationCanceled | InquireError::OperationInterrupted => {
@@ -186,12 +211,19 @@ impl Config {
     pub(super) async fn add(&mut self) -> Result {
         // Prompt the user and get the new instance
         println!("Adding a new instance:");
-        let new_instance = Config::prompt_instance_input()?;
+        let new_instance = Config::prompt_instance_input(Some(self.clone()))?;
         let new_name = new_instance.name.clone();
 
         // Push the instance to the others
         match self.others.as_mut() {
-            Some(others) => others.push(new_instance),
+            Some(others) => {
+                // If one already exists
+                if others.iter().any(|i| i.name == new_name) {
+                    return Err(Error::DuplicateInstanceName(new_name.clone()));
+                }
+
+                others.push(new_instance)
+            }
             None => self.others = Some(vec![new_instance]),
         }
 
@@ -225,6 +257,81 @@ impl Config {
         } else {
             println!("Successfully added `{new_name}`.")
         }
+
+        Ok(())
+    }
+
+    pub(super) async fn remove(&mut self) -> Result {
+        // Build a list to select from
+        let mut names = vec![self.active.name.clone()];
+
+        // If there are other instances push also it's names
+        if let Some(others) = self.others.as_ref() {
+            others.iter().for_each(|i| names.push(i.name.clone()))
+        }
+
+        // Ask the user which instance to remove
+        let name_to_remove = Select::new("Which Filecrab instance do you want to remove?", names)
+            .prompt()
+            .map_err(|err| match err {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    Error::UserCancel
+                }
+                _ => err.into(),
+            })?
+            .to_string();
+
+        // Make sure the user want's to remove it
+        if !Confirm::new("Are you sure?").with_default(false).with_help_message("Removing the active instance can have 2 consequences, if there are no more instances the config file is deleted. Otherwise the first instance in `others` is swapped as active.").prompt()? {
+            println!("Exited without removing any instance.");
+            return Ok(());
+        }
+
+        // If the one being deleted is the active one, either swap it with another or remove the
+        // config file
+        if name_to_remove == self.active.name.as_ref() {
+            match self.others.as_mut() {
+                // Remove the first of the others and place it as active
+                Some(others) => {
+                    let mut new_active = others.remove(0);
+                    mem::swap(&mut self.active, &mut new_active);
+                }
+                None => self.delete_config_file().await?,
+            }
+        } else {
+            // Unwrapping is safe as if the selected name is not the active it for sure exists in
+            // the others
+            self.others
+                .as_mut()
+                .unwrap()
+                .retain(|i| i.name != name_to_remove);
+        }
+
+        // If there are no remaining instances, set the others as None
+        if self.others.as_ref().is_some_and(|i| i.is_empty()) {
+            self.others = None;
+        }
+
+        // Create the path
+        let path = match dirs::config_dir() {
+            Some(config_dir) => config_dir.join(CONFIG_PATH),
+            None => return Err(Error::ConfigNotFound),
+        };
+
+        // Write the config
+        Config::write_config(&path, self).await?;
+
+        Ok(())
+    }
+
+    pub(super) async fn delete_config_file(&self) -> Result {
+        // Create the path
+        let path = match dirs::config_dir() {
+            Some(config_dir) => config_dir.join(CONFIG_PATH),
+            None => return Err(Error::ConfigNotFound),
+        };
+
+        fs::remove_file(path).await.map_err(Error::RemoveConfig)?;
 
         Ok(())
     }

@@ -21,6 +21,8 @@ pub enum Error {
     NoOtherInstances,
     #[error("the instance you are trying to set does not exist within filecrab's config")]
     InstanceNotFound,
+    #[error("there can not be two instances with the same name {0}")]
+    DuplicateInstanceName(String),
 
     // Toml
     #[error("could not parse config toml: {0}")]
@@ -49,6 +51,8 @@ pub enum Error {
     OpenFile { path: String, source: io::Error },
     #[error("could not delete temporary out file")]
     DeleteTempFile,
+    #[error("could not delete config file")]
+    RemoveConfig(#[source] io::Error),
 
     // Tokio
     #[error("could not copy received chunk")]
