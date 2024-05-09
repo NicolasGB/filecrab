@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - *(cli)* Add a command to `add` instances to a filecrab config
 - *(cli)* Add a command to `remove` an exisiting instance from a filecrab config
 
+### 🐛 Bug Fixes
+
+- *(cli)* Improve copied text for commands, it now includes the command to retreive the text/file instead of only the `memorable_word_list`
+
 ## [0.1.1] - 2024-04-22
 
 ### 🐛 Bug Fixes
