@@ -107,6 +107,7 @@ struct CopyResponse {
     content: String,
 }
 
+// Implementation of the commands of Cli.
 impl Cli {
     /// Runs the CLI.
     pub async fn run(mut self) -> Result {
@@ -463,7 +464,10 @@ impl Cli {
     async fn remove(&mut self) -> Result {
         self.config.remove().await
     }
+}
 
+// Implementation of the helper functions in Cli.
+impl Cli {
     /// Sets the text to the keyboard and waits for the user to CR before returning. This will allow
     /// the user to copy and paste the contents as long as they wish holding the program's exit.
     fn copy_to_clipboard(&self, text: &str) -> Result<()> {
