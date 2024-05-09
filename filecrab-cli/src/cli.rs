@@ -25,6 +25,9 @@ use tokio::{
     io::AsyncWriteExt,
 };
 
+const COPY_COMMAND: &str = "filecrab copy";
+const DOWNLOAD_COMMAND: &str = "filecrab download";
+
 /// Program to share files and text.
 #[derive(Parser)]
 pub struct Cli {
@@ -203,7 +206,7 @@ impl Cli {
         println!();
 
         // Copies the ID to the clipboard.
-        self.copy_to_clipboard(&res.id)?;
+        self.copy_to_clipboard(Some(DOWNLOAD_COMMAND), &res.id)?;
         Ok(())
     }
 
@@ -360,8 +363,8 @@ impl Cli {
         println!("The ID to share is the following:");
         println!("-> {}", body.id);
         println!();
-        // Copies the ID to the clipboard.
-        self.copy_to_clipboard(&body.id)?;
+        // Copies the command to retrieve the text and the ID to the clipboard.
+        self.copy_to_clipboard(Some(COPY_COMMAND), &body.id)?;
         Ok(())
     }
 
@@ -449,7 +452,7 @@ impl Cli {
                 })?;
         } else {
             // Copies the text to the clipboard.
-            self.copy_to_clipboard(&content)?;
+            self.copy_to_clipboard(None, &content)?;
         }
 
         Ok(())
@@ -470,11 +473,17 @@ impl Cli {
 impl Cli {
     /// Sets the text to the keyboard and waits for the user to CR before returning. This will allow
     /// the user to copy and paste the contents as long as they wish holding the program's exit.
-    fn copy_to_clipboard(&self, text: &str) -> Result<()> {
-        // Copies the text to the clipboard.
+    fn copy_to_clipboard(&self, command: Option<&str>, text: &str) -> Result<()> {
         let mut clipboard = Clipboard::new()?;
-        clipboard.set_text(text)?;
-        println!("It has now been copied to your clipboard, share it before the program exits!");
+        // Copies the command and the text to the clipboard.
+        if let Some(command) = command {
+            clipboard.set_text(format!("{command} {text}"))?;
+            println!("The resulting command has now been copied to your clipboard, share it before the program exits!");
+        } else {
+            // Copies the text to the clipboard.
+            clipboard.set_text(text)?;
+            println!("The text has now been copied to your clipboard, share it before the program exits!");
+        }
 
         // Prompts the user to press enter to exit.
         println!("Press Enter to exit...");
