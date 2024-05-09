@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - *(cli)* Handle multiple instances of filecrabs
 - *(cli)* Add a command to `add` instances to a filecrab config
+- *(cli)* Add a command to `remove` an exisiting instance from a filecrab config
 
 ## [0.1.1] - 2024-04-22
 
