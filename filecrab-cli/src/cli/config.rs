@@ -14,12 +14,18 @@ pub(super) struct Config {
     pub(super) others: Option<Vec<Instance>>,
 }
 
-/// Represents a filecrab instance
+/// Represents a filecrab instance.
 #[derive(Deserialize, Serialize, Default, Clone)]
 pub(super) struct Instance {
     pub(super) name: String,
     pub(super) url: String,
     pub(super) api_key: String,
+}
+
+/// Gives the original command and a pathbuf, used to create filecrab configs.
+pub enum CommandAndPath<'a> {
+    Init(&'a PathBuf),
+    Other(&'a PathBuf),
 }
 
 impl Config {
@@ -38,7 +44,7 @@ impl Config {
 
         // Prompts the user to set the config if it does not exist.
         if !config_path.exists() {
-            Config::prompt_new_config(&config_path).await?;
+            Config::prompt_new_config(CommandAndPath::Other(&config_path)).await?;
         }
 
         // Deserializes the config.
@@ -54,10 +60,17 @@ impl Config {
     }
 
     /// Prompts the user to set the initial config and saves it.
-    async fn prompt_new_config(path: &PathBuf) -> Result<()> {
-        // Reads the URL from the stdin.
-        println!("The config file is not set, we're going to create it.");
-        println!();
+    async fn prompt_new_config(command_and_path: CommandAndPath<'_>) -> Result<()> {
+        let path = match command_and_path {
+            CommandAndPath::Init(path) => {
+                println!("Initializing config:");
+                path
+            }
+            CommandAndPath::Other(path) => {
+                println!("The config file is not set, we're going to create it:");
+                path
+            }
+        };
 
         // Get the new instance
         let instance = Config::prompt_instance_input(None)?;
@@ -113,7 +126,7 @@ impl Config {
                     // So we make sure we don't consume the config here, consuming the config
                     // appears to fail the 'static annotation of the closure
                     if let Some(conf) = &config {
-                        // If either the active config or the others alredy have the given name,
+                        // If either the active config or the others already have the given name,
                         // refuse the validation
                         if conf.active.name == val
                             || conf
@@ -332,6 +345,26 @@ impl Config {
         };
 
         fs::remove_file(path).await.map_err(Error::RemoveConfig)?;
+
+        Ok(())
+    }
+
+    pub(super) async fn init(&self) -> Result {
+        let path = match dirs::config_dir() {
+            Some(config_dir) => config_dir.join(CONFIG_PATH),
+            None => return Err(Error::ConfigNotFound),
+        };
+
+        let exists = fs::try_exists(&path).await;
+        // if exists is ok then return early
+        if exists.as_ref().is_ok_and(|val| *val) {
+            return Err(Error::ConfigExists);
+        } else if exists.is_err() {
+            exists.map_err(Error::FindConfig)?;
+        }
+
+        // If it doesn't exists prompt the user
+        Config::prompt_new_config(CommandAndPath::Init(&path)).await?;
 
         Ok(())
     }

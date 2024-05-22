@@ -11,7 +11,7 @@ pub type Result<T = ()> = core::result::Result<T, Error>;
 #[derive(Error, Debug)]
 pub enum Error {
     // Config
-    #[error("could not locate config directory which is mandatory for filecrab.")]
+    #[error("Could not locate config directory which is mandatory for filecrab.")]
     ConfigNotFound,
     #[error("could not create filecrab config directory")]
     CreateConfigDir(#[source] io::Error),
@@ -23,6 +23,10 @@ pub enum Error {
     InstanceNotFound,
     #[error("there can not be two instances with the same name {0}")]
     DuplicateInstanceName(String),
+    #[error("Filecrab has already been initialized, a config already exists.")]
+    ConfigExists,
+    #[error("Error trying to find filecrab's config")]
+    FindConfig(#[source] io::Error),
 
     // Toml
     #[error("could not parse config toml: {0}")]
