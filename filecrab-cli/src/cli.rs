@@ -84,6 +84,8 @@ pub enum Command {
     Add,
     /// Removes a filecrab instance from the config.
     Remove,
+    /// Inits the config for filecrab
+    Init,
 }
 
 /// Represents the response of the upload request.
@@ -114,6 +116,11 @@ struct CopyResponse {
 impl Cli {
     /// Runs the CLI.
     pub async fn run(mut self) -> Result {
+        // Check if the command is an init
+        if let Command::Init = self.cmd {
+            return self.init().await;
+        }
+
         // Loads the config.
         self.config = Config::load_config().await?;
 
@@ -137,6 +144,7 @@ impl Cli {
             Command::Switch => self.switch().await,
             Command::Add => self.add().await,
             Command::Remove => self.remove().await,
+            _ => unreachable!(),
         }
     }
 
@@ -466,6 +474,10 @@ impl Cli {
     /// Allows the user to remove a filecrab instance from the config.
     async fn remove(&mut self) -> Result {
         self.config.remove().await
+    }
+
+    async fn init(&mut self) -> Result {
+        self.config.init().await
     }
 }
 
