@@ -2,8 +2,9 @@ mod config;
 
 use crate::{cli::config::Instance, error::Error, Result};
 use age::{secrecy::Secret, Decryptor, Encryptor};
+use anstyle::AnsiColor;
 use arboard::Clipboard;
-use clap::{Parser, Subcommand};
+use clap::{builder::Styles, Parser, Subcommand};
 use config::Config;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -30,6 +31,7 @@ const DOWNLOAD_COMMAND: &str = "filecrab download";
 
 /// Program to share files and text.
 #[derive(Parser)]
+#[command(styles=Self::styles())]
 pub struct Cli {
     #[command(subcommand)]
     cmd: Command,
@@ -114,6 +116,15 @@ struct CopyResponse {
 
 // Implementation of the commands of Cli.
 impl Cli {
+    /// Returns the styles for the CLI.
+    fn styles() -> clap::builder::Styles {
+        Styles::styled()
+            .header(AnsiColor::Yellow.on_default())
+            .usage(AnsiColor::Yellow.on_default())
+            .literal(AnsiColor::Green.on_default())
+            .placeholder(AnsiColor::Green.on_default())
+    }
+
     /// Runs the CLI.
     pub async fn run(mut self) -> Result {
         // Check if the command is an init
