@@ -6,8 +6,10 @@ use anstyle::AnsiColor;
 use arboard::Clipboard;
 use clap::{builder::Styles, Parser, Subcommand};
 use config::Config;
+use file_format::FileFormat;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
+use inquire::Confirm;
 use reqwest::{
     multipart::{Form, Part},
     Client,
@@ -17,7 +19,7 @@ use std::{
     cmp::min,
     env,
     io::{self, IsTerminal, Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::Duration,
     vec,
 };
@@ -160,7 +162,7 @@ impl Cli {
     }
 
     /// Uploads a file to filecrab.
-    async fn upload(&mut self, path: PathBuf, pwd: Option<String>) -> Result<()> {
+    async fn upload(&mut self, path: PathBuf, mut pwd: Option<String>) -> Result<()> {
         // Destructures the config.
         let Instance { url, api_key, name } = &self.config.get_active_instance();
         println!("Active filecrab instance: {name}");
@@ -173,6 +175,16 @@ impl Cli {
 
         // Initializes the form.
         let mut form = Form::new();
+
+        // Prompt the user for a password
+        if pwd.is_none()
+            && Confirm::new("Do you wish to encrypt the file?")
+                .with_default(false)
+                .prompt()?
+        {
+            let given_pwd = inquire::prompt_text("Password to use for encryption:")?;
+            pwd = Some(given_pwd);
+        };
 
         // If there's a password, adds it to the form and encrypts the file.
         if let Some(pwd) = pwd {
@@ -278,16 +290,8 @@ impl Cli {
             env::current_dir().map_err(Error::CurrentDir)?
         };
 
-        // Creates file with the name of the asset.
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(format!("{}/{}", path.display(), file_name))
-            .await
-            .map_err(|err| Error::OpenFile {
-                path: format!("{}", path.display()),
-                source: err,
-            })?;
+        // Verify the  file can be created before continuing
+        Cli::check_file_can_be_created(&path).await?;
 
         // Gets the content length for the progress bar.
         let total_size = res.content_length().unwrap_or_default();
@@ -296,7 +300,7 @@ impl Cli {
         let pb = ProgressBar::new(total_size);
         pb.set_style(ProgressStyle::default_bar()
             .template("{msg}\n{spinner:.green} [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
-            .progress_chars("#>-"));
+            .progress_chars("█░"));
         pb.set_message("Downloading file...");
 
         // Inits the stream.
@@ -326,9 +330,23 @@ impl Cli {
             let output = Cli::decrypt_slice(&buf[..], pwd)?;
             bar.finish();
             output
+        } else if FileFormat::from_bytes(&buf) == FileFormat::AgeEncryption {
+            // If the data coming in is encrypted, Prompt the user for a password
+            let pwd = inquire::prompt_text("The file is encrypted, please provide a password:")?;
+
+            let mut bar = ProgressBar::new_spinner();
+            bar = bar.with_message("Decrypting file");
+            bar.enable_steady_tick(Duration::from_millis(100));
+
+            let output = Cli::decrypt_slice(&buf[..], pwd)?;
+            bar.finish();
+            output
         } else {
             buf
         };
+
+        // Creates file with the name of the asset.
+        let mut file = Cli::create_file(format!("{}/{}", path.display(), file_name)).await?;
 
         // Writes the file.
         file.write_all(&bytes)
@@ -396,21 +414,7 @@ impl Cli {
     async fn copy(&mut self, id: String, pwd: String, out: Option<PathBuf>) -> Result<()> {
         //Check if a file has been given, if so check it's falid
         if let Some(ref path) = out {
-            // Creates file with the name of the asset.
-            let _ = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(path)
-                .await
-                .map_err(|err| Error::OpenFile {
-                    path: format!("{}", path.display()),
-                    source: err,
-                })?;
-
-            // Now that we know the file can be oppened and created when delete it.
-            fs::remove_file(path)
-                .await
-                .map_err(|_| Error::DeleteTempFile)?
+            Cli::check_file_can_be_created(path).await?;
         }
 
         // Destructures the config.
@@ -453,15 +457,7 @@ impl Cli {
         bar.finish_and_clear();
 
         if let Some(path) = out {
-            let mut file = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(path.clone())
-                .await
-                .map_err(|err| Error::OpenFile {
-                    path: format!("{}", path.display()),
-                    source: err,
-                })?;
+            let mut file = Cli::create_file(path).await?;
 
             file.write_all(content.as_bytes())
                 .await
@@ -551,5 +547,29 @@ impl Cli {
             })?;
         writer.finish().map_err(Error::FinishEncryption)?;
         Ok(output)
+    }
+
+    /// Checks if a file can be created, removes the created file right after
+    async fn check_file_can_be_created(path: &PathBuf) -> Result {
+        let _ = Cli::create_file(path).await?;
+
+        // Now that we know the file can be oppened and created when delete it.
+        fs::remove_file(path)
+            .await
+            .map_err(|_| Error::DeleteTempFile)
+    }
+
+    /// Creates a file given a path
+    async fn create_file(path: impl AsRef<Path>) -> Result<fs::File> {
+        // Creates file with the name of the asset.
+        OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .await
+            .map_err(|err| Error::OpenFile {
+                path: format!("{}", path.as_ref().display()),
+                source: err,
+            })
     }
 }
