@@ -51,7 +51,7 @@ pub enum Error {
     WriteFile { path: String, source: io::Error },
     #[error("could not get current dir")]
     CurrentDir(#[source] io::Error),
-    #[error("could not open file: {path}")]
+    #[error("could not open file: {path}, please make sure the file doesn't already exist")]
     OpenFile { path: String, source: io::Error },
     #[error("could not delete temporary out file")]
     DeleteTempFile,
