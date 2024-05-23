@@ -15,7 +15,7 @@ File and text sharing application, built on top of [MinIO](https://min.io/) and
 [SurrealDB](https://surrealdb.com/) and powered by [Rust](https://www.rust-lang.org/). You can host
 your own instance, simply need a MinIO bucket and a SurrealDB instance.
 
-A useful [CLI](#cli) will allow you to upload files and text to your instance.
+A useful [CLI](#cli) will allow you to upload files and text to an instance.
 
 ## Features
 
@@ -28,6 +28,7 @@ A useful [CLI](#cli) will allow you to upload files and text to your instance.
 - Memorable words list for IDs, inspired by
   [Magic Wormhole](https://github.com/magic-wormhole/magic-wormhole.rs).
 - Server can be run in distant or embedded mode.
+- The cli can manage multiple instances of filecrab.
 
 ## Security
 
@@ -51,6 +52,10 @@ the server.
     - [From GitHub](#from-github)
   - [Usage](#usage)
     - [Set up](#set-up)
+    - [Multi Instances](#multi-instances)
+      - [Add](#add)
+      - [Remove](#remove)
+      - [Switch](#switch)
     - [Files](#files)
       - [Upload](#upload)
       - [Download](#download)
@@ -148,10 +153,44 @@ cargo install --path filecrab-cli
 
 #### Set up
 
-The CLI needs to be configured with the server URL and the API key. On the first run, you will be asked to provide this information. Follow the instructions to set up the CLI.
+The CLI needs to be configured with at least one instance of filecrab. You can either init de config via a command or on the first run, you will be asked to provide this information. Follow the instructions to set up the CLI.
+
+```sh
+filecrab init
+```
+
+You will be asked to set a name for the instance and then URL and API key.
 
 > [!NOTE]
 > The path to the configuration file is `~/.config/filecrab/config.toml`. You can edit it manually if needed.
+
+#### Multi Instances
+
+You can manage multiple instances of filecrab and switch easily between them. Each instance must have a name and cannot be the same as an existent one.
+
+##### Add
+
+Allows you to add a new instance of filecrab.
+
+```sh
+filecrab add
+```
+
+##### Remove
+
+Allows you to remove an existing instance of filecrab.
+
+```sh
+filecrab remove
+```
+
+##### Switch
+
+Allows you to switch the active instance used by the cli.
+
+```sh
+filecrab switch
+```
 
 #### Files
 
