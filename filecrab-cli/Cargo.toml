@@ -28,3 +28,4 @@ toml = { version = "0.8" }
 inquire = { version = "0.7" }
 
 hex = { version = "0.4" }
+file-format = "0.25.0"

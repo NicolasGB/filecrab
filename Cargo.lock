@@ -1469,6 +1469,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c007b1ae3abe1cb6f85a16305acd418b7ca6343b953633fee2b76d8f108b830f"
 
 [[package]]
+name = "file-format"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ffe3a660c3a1b10e96f304a9413d673b2118d62e4520f7ddf4a4faccfe8b9b9"
+
+[[package]]
 name = "filecrab-cli"
 version = "0.1.0"
 dependencies = [
@@ -1477,6 +1483,7 @@ dependencies = [
  "arboard",
  "clap",
  "dirs",
+ "file-format",
  "futures-util",
  "hex",
  "indicatif",
