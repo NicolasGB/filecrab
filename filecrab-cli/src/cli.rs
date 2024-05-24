@@ -290,9 +290,6 @@ impl Cli {
             env::current_dir().map_err(Error::CurrentDir)?
         };
 
-        // Verify the  file can be created before continuing
-        Cli::check_file_can_be_created(&path).await?;
-
         // Gets the content length for the progress bar.
         let total_size = res.content_length().unwrap_or_default();
 
@@ -320,6 +317,8 @@ impl Cli {
             downloaded = pos;
             pb.set_position(pos);
         }
+        // Finishes the progress bar.
+        pb.finish();
 
         // Decrypts the file.
         let bytes = if let Some(pwd) = pwd {
@@ -356,10 +355,7 @@ impl Cli {
                 source: err,
             })?;
 
-        // Finishes the progress bar.
-        pb.finish_with_message(format!(
-            "The name of the downloaded element is: {file_name}"
-        ));
+        println!("The name of the downloaded element is: {file_name}");
         Ok(())
     }
 
@@ -552,6 +548,7 @@ impl Cli {
 
     /// Checks if a file can be created, removes the created file right after
     async fn check_file_can_be_created(path: impl AsRef<Path>) -> Result {
+        println!("{:?}", path.as_ref());
         let _ = Cli::create_file(&path).await?;
 
         // Now that we know the file can be oppened and created when delete it.
