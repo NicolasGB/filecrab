@@ -405,11 +405,6 @@ impl Cli {
         Ok(())
     }
 
-    // Switches the filecrab instance
-    async fn switch(&mut self) -> Result {
-        self.config.switch_instance().await
-    }
-
     /// Copies a text from filecrab to the user's clipboard or, if set, to a given file.
     async fn copy(&mut self, id: String, pwd: String, out: Option<PathBuf>) -> Result<()> {
         //Check if a file has been given, if so check it's falid
@@ -473,6 +468,11 @@ impl Cli {
         Ok(())
     }
 
+    // Switches the filecrab instance
+    async fn switch(&mut self) -> Result {
+        self.config.switch_instance().await
+    }
+
     /// Allows the user to add a new filecrab instance to the config.
     async fn add(&mut self) -> Result {
         self.config.add().await
@@ -483,6 +483,7 @@ impl Cli {
         self.config.remove().await
     }
 
+    /// Allows the user to initialize a filecrab config.
     async fn init(&mut self) -> Result {
         self.config.init().await
     }
@@ -550,8 +551,8 @@ impl Cli {
     }
 
     /// Checks if a file can be created, removes the created file right after
-    async fn check_file_can_be_created(path: &PathBuf) -> Result {
-        let _ = Cli::create_file(path).await?;
+    async fn check_file_can_be_created(path: impl AsRef<Path>) -> Result {
+        let _ = Cli::create_file(&path).await?;
 
         // Now that we know the file can be oppened and created when delete it.
         fs::remove_file(path)
