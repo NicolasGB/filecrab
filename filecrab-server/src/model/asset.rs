@@ -49,7 +49,7 @@ impl Asset {
         let db = mm.db();
 
         let res: Option<Asset> = db
-            .query("SELECT * FROM asset WHERE memo_id == $memo_id LIMIT 1")
+            .query("SELECT * FROM asset WHERE memo_id = $memo_id LIMIT 1")
             .bind(("memo_id", memo_id))
             .await
             .map_err(ModelManagerError::SearchAsset)?
