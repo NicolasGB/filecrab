@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["filecrab-server", "filecrab-cli"]
+members = ["filecrab-server", "filecrab-cli", "filecrab-web"]
 
 [profile.release]
 codegen-units = 1
@@ -23,7 +23,12 @@ tower-cookies = "0.10"
 futures = { version = "0.3" }
 futures-util = { version = "0.3" }
 
+reqwest = { version = "0.12", features = ["multipart", "json", "stream"] }
+
 clap = { version = "4.4.18", features = ["derive"] }
+
+age = { version = "0.10" }
+file-format = "0.25.0"
 
 #Tracing
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }

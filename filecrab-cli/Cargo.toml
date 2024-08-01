@@ -13,19 +13,19 @@ name = "filecrab"
 path = "src/main.rs"
 
 [dependencies]
-age = { version = "0.10" }
+age = { workspace = true }
 anstyle = { version = "1.0" }
 arboard = { version = "3.3" }
 clap = { workspace = true }
 futures-util = { workspace = true }
 dirs = { version = "5.0" }
 indicatif = { version = "0.17" }
-reqwest = { version = "0.12", features = ["multipart", "json", "stream"] }
+reqwest = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+file-format = { workspace = true }
 toml = { version = "0.8" }
 inquire = { version = "0.7" }
 
 hex = { version = "0.4" }
-file-format = "0.25.0"

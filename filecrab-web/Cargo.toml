@@ -1,0 +1,26 @@
+[package]
+name = "filecrab-web"
+version = "0.1.0"
+authors = ["NicolasGB <ngou0210@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+dioxus = { version = "0.5", features = ["web", "router"] }
+
+# Debug
+dioxus-logger = "0.5.1"
+manganis = "0.2.2"
+anyhow = "1"
+
+reqwest.workspace = true
+futures-util.workspace = true
+file-format.workspace = true
+
+
+# We add this as we need the js version for wasm
+async-std = { version = "1" }
+getrandom = { version = "0.2", features = ["js"] }
+age.workspace = true
