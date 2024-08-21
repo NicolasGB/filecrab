@@ -1,15 +1,24 @@
 use age::{secrecy::Secret, Decryptor};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use dioxus::prelude::*;
 use dioxus_logger::tracing::{debug, info, Level};
 use futures_util::{io, StreamExt};
 use reqwest::Client;
-use std::{io::Read, time::Duration};
+use std::{fmt::Display, io::Read, time::Duration};
 
 // Urls are relative to your Cargo.toml file
 const _TAILWIND_URL: &str = manganis::mg!(file("public/tailwind.css"));
 
 const ASSET: manganis::ImageAsset = manganis::mg!(image("assets/logo.png"));
+
+// Define a global signal holding the action state
+enum Action {
+    Idle,
+    Downloading,
+    Decrypting,
+}
+
+static ACTION_IN_PROGRESS: GlobalSignal<Action> = Signal::global(|| Action::Idle);
 
 fn main() {
     // Init logger
@@ -18,15 +27,43 @@ fn main() {
     launch(App);
 }
 
-async fn get_file(id: String, pwd: String) -> Result<Vec<u8>> {
-    debug!("fetching: {id}, {pwd}");
+impl Display for Action {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Action::Idle => f.write_str(""),
+            Action::Downloading => f.write_str("Downloading..."),
+            Action::Decrypting => f.write_str("Decrypting..."),
+        }
+    }
+}
+
+async fn get_file(id: String, pwd: String) -> Result<(String, Vec<u8>)> {
+    // Set the action to downloading
+    *ACTION_IN_PROGRESS.write() = Action::Downloading;
+
     let query = vec![("file", &id)];
+    info!("before requesting");
+    //TODO: 20/08/2024 - handle errors correclty from client
     let res = Client::new()
         .get("http://127.0.0.1:8080/api/download".to_string())
         //WARN: Remove me before commit
+        .header("filecrab-key", "supersecretkey")
         .query(&query)
         .send()
         .await?;
+    info!("after requesting");
+
+    // Checks if there's been an error.
+    if !res.status().is_success() {
+        let status = res.status().to_string();
+        return Err(anyhow!("Status: {status}"));
+    }
+
+    // Gets the filename from headers.
+    let file_name = match res.headers().get("filecrab-file-name") {
+        Some(file_name) => file_name.to_str()?.to_string(),
+        None => return Err(anyhow!("Could not get filename from response header.")),
+    };
 
     // Inits the stream.
     let mut stream = res.bytes_stream();
@@ -40,9 +77,12 @@ async fn get_file(id: String, pwd: String) -> Result<Vec<u8>> {
         io::copy(&mut chunk.as_ref(), &mut buf).await?;
     }
 
+    // Set the action to downloading
+    *ACTION_IN_PROGRESS.write() = Action::Decrypting;
+
     let output = decrypt_slice(&buf[..], pwd)?;
 
-    Ok(output)
+    Ok((file_name, output))
 }
 
 /// Given a slice of bytes and a password, tries to decrypt it's values and returns the
@@ -60,31 +100,46 @@ fn decrypt_slice(buf: &[u8], pwd: String) -> anyhow::Result<Vec<u8>> {
 }
 
 async fn fetch_file(id: String, pwd: String) -> Result<()> {
-    let data = get_file(id, pwd).await?;
-    let create_eval = eval(
+    let (file_name, data) = get_file(id, pwd).await?;
+
+    let new_eval = eval(
         r#"
         let filename = await dioxus.recv();
         let content = await dioxus.recv();
 
+        // Convert from uint8array
+        var contentBytes = new Uint8Array(content);
+
         var contentType = 'application/octet-stream';
         var a = document.createElement('a');
-        var blob = new Blob([content], {'type':contentType});
-        a.href = window.URL.createObjectURL(blob);
-        a.download = filename;
+        var blob = new Blob([contentBytes], {'type':contentType});
+        a.setAttribute("download", filename);
+        a.setAttribute("href", window.URL.createObjectURL(blob));
         a.click();
         "#,
     );
 
-    create_eval.send("filename".into()).expect("filename");
-    create_eval.send(data.into()).expect("data");
+    // Convert the Vec<u8> to serde::Value using serde_bytes::ByteBuf
+    let data_value = serde_bytes::ByteBuf::from(data);
+
+    new_eval
+        .send(file_name.into())
+        .map_err(|err| anyhow!("{err:?}").context("could not eval filename"))?;
+    new_eval
+        .send(serde_json::to_value(&data_value)?)
+        .map_err(|err| anyhow!("{err:?}").context("could not eval data"))?;
+
     Ok(())
 }
 
 #[component]
 fn App() -> Element {
-    let id = use_signal(|| "".to_string());
+    let id = use_signal(|| "destroyer_spindle_dedication".to_string());
     let pwd = use_signal(|| "".to_string());
+
     let fetch_result = use_signal(|| None::<anyhow::Result<()>>);
+
+    // Boolean to control the fact of showing or not the error toast
     let mut show = use_signal_sync(|| true);
 
     use_effect(move || {
@@ -97,21 +152,41 @@ fn App() -> Element {
         div { class: "container mx-auto max-w-screen-xl px-6",
             img { class: "mx-auto", src: "{ASSET}" },
             DownloadForm { id, pwd, fetch_result }
-            div {
-                class: "mx-auto",
-                {
-                    match &*fetch_result.read() {
-                        Some(Ok(_)) => {info!("ok"); None},
-                        Some(Err(err)) => {
-                            rsx!{
+            {
+                match &*ACTION_IN_PROGRESS.read() {
+                    Action::Idle => {
+                        None
+                    }
+                    _ => {
+                        rsx!{
+                            div {
+                                class: "flex justify-center items-center flex-col gap-2 pt-8",
+                                span {
+                                    class: "loading loading-spinner loading-lg text-primary"
+                                }
+                                p {
+                                    "{ACTION_IN_PROGRESS}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            {
+                match &*fetch_result.read() {
+                    Some(Ok(_)) => {
+
+                        None
+                    },
+                    Some(Err(err)) => {
+                        rsx!{
                                 ErrorToast {
                                     err: err.to_string(),
                                     show: show,
                                 }
-                            }
-                        },
-                        None => {None},
-                    }
+                        }
+                    },
+                    None => {None},
                 }
             }
         }
@@ -124,12 +199,27 @@ fn DownloadForm(
     pwd: Signal<String>,
     fetch_result: Signal<Option<Result<()>>>,
 ) -> Element {
+    // Button is disabled unless there is something to sed
+    let mut disable_button = use_signal(|| true);
+    use_memo(move || {
+        if !id().is_empty() && !pwd().is_empty() {
+            disable_button.set(false);
+        } else {
+            disable_button.set(true);
+        }
+    });
+
     rsx! {
         form {
             onsubmit: move |_| {
+                // Restore the in progress to idle after finishing the task
+                *ACTION_IN_PROGRESS.write() = Action::Downloading;
                 spawn(async move {
                     let result = fetch_file(id(), pwd()).await;
                     fetch_result.set(Some(result));
+
+                    // Restore the in progress to idle after finishing the task
+                    *ACTION_IN_PROGRESS.write() = Action::Idle;
                 });
             },
             class: "max-w-md mx-auto gap-4 flex flex-col",
@@ -201,10 +291,11 @@ fn DownloadForm(
                     placeholder: "Set your password"
                 }
             }
-            input {
+            button {
                 class: "btn btn-primary",
                 r#type: "submit",
-                value: "Download"
+                disabled: disable_button(),
+                "Download",
             }
         }
     }

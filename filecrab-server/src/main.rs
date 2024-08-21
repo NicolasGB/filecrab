@@ -13,7 +13,7 @@ pub use self::error::{Error, Result};
 
 use axum::{
     body::Bytes,
-    http::{header, HeaderName, HeaderValue},
+    http::{header, HeaderName, HeaderValue, Method},
     Router,
 };
 use clokwerk::{AsyncScheduler, TimeUnits};
@@ -44,6 +44,14 @@ async fn main() -> Result<()> {
     })?;
 
     let filecrab_header = HeaderName::from_static("filecrab-key");
+    let filecrab_download_header = HeaderName::from_static("filecrab-file-name");
+
+    // Get the cors middlewares
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([filecrab_header.clone()])
+        .expose_headers([filecrab_download_header])
+        .allow_origin(Any);
 
     // Build our middleware stack
     let middleware = ServiceBuilder::new()
