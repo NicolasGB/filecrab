@@ -2024,6 +2024,8 @@ dependencies = [
  "getrandom 0.2.15",
  "manganis",
  "reqwest 0.12.5",
+ "serde_bytes",
+ "serde_json",
 ]
 
 [[package]]

@@ -19,8 +19,11 @@ reqwest.workspace = true
 futures-util.workspace = true
 file-format.workspace = true
 
+async-std = { version = "1" }
+
+serde_bytes = { version = "0.11" }
+serde_json = { version = "1.0" }
 
 # We add this as we need the js version for wasm
-async-std = { version = "1" }
 getrandom = { version = "0.2", features = ["js"] }
 age.workspace = true
