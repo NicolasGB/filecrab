@@ -1,0 +1,24 @@
+## CHEF
+FROM alpine:edge AS chef
+RUN apk update
+RUN apk --no-cache add cargo rust-wasm openssl-dev clang16-libclang perl
+RUN apk add --update --no-cache build-base cmake 
+RUN apk add --update --no-cache  linux-headers snappy-dev
+RUN cargo install cargo-binstall && cargo binstall dioxus-cli --no-confirm
+
+
+## BUILDER
+FROM chef AS builder
+WORKDIR /app
+COPY . .
+# Enter the filecrab-web dir
+RUN cd filecrab-web && $HOME/.cargo/bin/dx build --release
+
+## RUNTIME
+FROM nginxinc/nginx-unprivileged:stable-alpine AS runtime
+USER nginx
+
+COPY --from=builder /app/filecrab-web/dist /usr/share/nginx/html
+COPY --from=builder /app/filecrab-web/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 8080

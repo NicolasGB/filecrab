@@ -1,10 +1,13 @@
 use age::{secrecy::Secret, Decryptor};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
+use async_std::task::sleep;
 use dioxus::prelude::*;
-use dioxus_logger::tracing::{debug, info, Level};
+use dioxus_logger::tracing::{info, Level};
+use file_format::FileFormat;
+use futures_util::AsyncReadExt;
 use futures_util::{io, StreamExt};
 use reqwest::Client;
-use std::{fmt::Display, io::Read, time::Duration};
+use std::{fmt::Display, time::Duration};
 
 // Urls are relative to your Cargo.toml file
 const _TAILWIND_URL: &str = manganis::mg!(file("public/tailwind.css"));
@@ -15,7 +18,9 @@ const ASSET: manganis::ImageAsset = manganis::mg!(image("assets/logo.png"));
 enum Action {
     Idle,
     Downloading,
+    PreparingDecryption,
     Decrypting,
+    FinishingFile,
 }
 
 static ACTION_IN_PROGRESS: GlobalSignal<Action> = Signal::global(|| Action::Idle);
@@ -32,7 +37,9 @@ impl Display for Action {
         match self {
             Action::Idle => f.write_str(""),
             Action::Downloading => f.write_str("Downloading..."),
+            Action::PreparingDecryption => f.write_str("Decrypting is about to start..."),
             Action::Decrypting => f.write_str("Decrypting..."),
+            Action::FinishingFile => f.write_str("Finishing..."),
         }
     }
 }
@@ -43,11 +50,8 @@ async fn get_file(id: String, pwd: String) -> Result<(String, Vec<u8>)> {
 
     let query = vec![("file", &id)];
     info!("before requesting");
-    //TODO: 20/08/2024 - handle errors correclty from client
     let res = Client::new()
         .get("http://127.0.0.1:8080/api/download".to_string())
-        //WARN: Remove me before commit
-        .header("filecrab-key", "supersecretkey")
         .query(&query)
         .send()
         .await?;
@@ -77,25 +81,60 @@ async fn get_file(id: String, pwd: String) -> Result<(String, Vec<u8>)> {
         io::copy(&mut chunk.as_ref(), &mut buf).await?;
     }
 
-    // Set the action to downloading
-    *ACTION_IN_PROGRESS.write() = Action::Decrypting;
+    *ACTION_IN_PROGRESS.write() = Action::Idle;
+    sleep(Duration::from_millis(10)).await;
 
-    let output = decrypt_slice(&buf[..], pwd)?;
+    let is_encrypted = FileFormat::from_bytes(&buf) == FileFormat::AgeEncryption;
 
-    Ok((file_name, output))
+    // If file is encoded try to decrypt it
+    if is_encrypted && pwd.is_empty() {
+        bail!("You must provide a password for this file as it is encrypted")
+    } else if is_encrypted {
+        *ACTION_IN_PROGRESS.write() = Action::PreparingDecryption;
+        sleep(Duration::from_millis(10)).await;
+
+        let output = decrypt_slice(&buf[..], pwd).await?;
+        return Ok((file_name, output));
+    }
+
+    // Simply return the file
+    Ok((file_name, buf))
 }
 
 /// Given a slice of bytes and a password, tries to decrypt it's values and returns the
 /// original content.
 /// Uses the age algorithm.
-fn decrypt_slice(buf: &[u8], pwd: String) -> anyhow::Result<Vec<u8>> {
-    let decryptor = match Decryptor::new(buf)? {
+async fn decrypt_slice(buf: &[u8], pwd: String) -> anyhow::Result<Vec<u8>> {
+    let decryptor = match Decryptor::new_async_buffered(buf).await? {
         Decryptor::Passphrase(decryptor) => decryptor,
         _ => unreachable!(),
     };
     let mut output = vec![];
-    let mut reader = decryptor.decrypt(&Secret::new(pwd), None)?;
-    reader.read_to_end(&mut output)?;
+    let mut reader = decryptor.decrypt_async(&Secret::new(pwd), None)?;
+
+    // Set the action to decrypting
+    *ACTION_IN_PROGRESS.write() = Action::Decrypting;
+    sleep(Duration::from_millis(10)).await;
+
+    let mut buffer = vec![0u8; 1024 * 1024];
+    loop {
+        match reader.read(&mut buffer).await {
+            Ok(0) => {
+                break;
+            }
+            Ok(n) => {
+                output.extend_from_slice(&buffer[..n]);
+                sleep(Duration::from_millis(1)).await;
+            }
+            Err(err) => {
+                bail!(err)
+            }
+        }
+    }
+    // Restore the in progress to idle after finishing the task
+    *ACTION_IN_PROGRESS.write() = Action::FinishingFile;
+    sleep(Duration::from_millis(50)).await;
+
     Ok(output)
 }
 
@@ -134,7 +173,7 @@ async fn fetch_file(id: String, pwd: String) -> Result<()> {
 
 #[component]
 fn App() -> Element {
-    let id = use_signal(|| "destroyer_spindle_dedication".to_string());
+    let id = use_signal(|| "generator_goggles_optical".to_string());
     let pwd = use_signal(|| "".to_string());
 
     let fetch_result = use_signal(|| None::<anyhow::Result<()>>);
@@ -156,6 +195,16 @@ fn App() -> Element {
                 match &*ACTION_IN_PROGRESS.read() {
                     Action::Idle => {
                         None
+                    },
+                    Action::PreparingDecryption | Action::FinishingFile => {
+                        rsx!{
+                            div {
+                                class: "flex justify-center items-center flex-col gap-2 pt-8",
+                                p {
+                                    "{ACTION_IN_PROGRESS}"
+                                }
+                            }
+                        }
                     }
                     _ => {
                         rsx!{
@@ -175,7 +224,6 @@ fn App() -> Element {
             {
                 match &*fetch_result.read() {
                     Some(Ok(_)) => {
-
                         None
                     },
                     Some(Err(err)) => {
@@ -201,8 +249,9 @@ fn DownloadForm(
 ) -> Element {
     // Button is disabled unless there is something to sed
     let mut disable_button = use_signal(|| true);
+    let mut disable_form = use_signal(|| false);
     use_memo(move || {
-        if !id().is_empty() && !pwd().is_empty() {
+        if !id().is_empty() {
             disable_button.set(false);
         } else {
             disable_button.set(true);
@@ -212,14 +261,30 @@ fn DownloadForm(
     rsx! {
         form {
             onsubmit: move |_| {
-                // Restore the in progress to idle after finishing the task
-                *ACTION_IN_PROGRESS.write() = Action::Downloading;
                 spawn(async move {
+                    // Disable button and form
+                    disable_form.set(true);
+                    disable_button.set(true);
+
+                    // Fetch file
                     let result = fetch_file(id(), pwd()).await;
+
+                    // If the result is ok, clear the form
+                    if result.is_ok() {
+                        id.set("".to_string());
+                        pwd.set("".to_string());
+                    }
+
+                    // Set the result response
                     fetch_result.set(Some(result));
 
-                    // Restore the in progress to idle after finishing the task
+                    // Update app state
                     *ACTION_IN_PROGRESS.write() = Action::Idle;
+                    sleep(Duration::from_millis(50)).await;
+
+                    // Re enable button and form
+                    disable_button.set(false);
+                    disable_form.set(false);
                 });
             },
             class: "max-w-md mx-auto gap-4 flex flex-col",
@@ -271,9 +336,11 @@ fn DownloadForm(
                 }
                 input {
                     oninput: move |event| id.set(event.value()),
+                    class: "min-w-[90%]",
                     r#type: "text",
                     placeholder: "File id",
-                    value: "{id}"
+                    value: "{id}",
+                    disabled: disable_form()
                 }
             }
             label { class: "input input-bordered input-primary flex items-center gap-2",
@@ -286,9 +353,15 @@ fn DownloadForm(
                 }
                 input {
                     oninput: move |event| pwd.set(event.value()),
-                    class: "min-w-[90%]",
+                    class: "grow",
                     r#type: "password",
-                    placeholder: "Set your password"
+                    placeholder: "Set your password",
+                    value: "{pwd}",
+                    disabled: disable_form()
+                }
+                span {
+                    class: "badge badge-ghost",
+                    "Optional"
                 }
             }
             button {
@@ -312,7 +385,6 @@ fn ErrorToast(err: String, show: Signal<bool, SyncStorage>) -> Element {
 
         rsx! {
             div {
-                // role: "alert",
                 class: "toast toast-top toast-end",
                 div {
                     class: "alert alert-error",

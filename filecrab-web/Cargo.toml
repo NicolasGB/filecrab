@@ -27,3 +27,4 @@ serde_json = { version = "1.0" }
 # We add this as we need the js version for wasm
 getrandom = { version = "0.2", features = ["js"] }
 age.workspace = true
+file-format.worskpace = true
