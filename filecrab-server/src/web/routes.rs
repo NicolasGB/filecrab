@@ -24,14 +24,16 @@ use crate::{
 pub fn routes(mm: ModelManager) -> Router {
     Router::new()
         .route("/api/upload", post(upload_handler))
-        .route("/api/download", get(download_handler))
         .route("/api/paste", post(paste_handler))
         .route("/api/copy", get(copy_handler))
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(
             config().MAXIMUM_FILE_SIZE * 1024 * 1024, /* in mb */
         ))
-        .layer(axum::middleware::from_fn(api_key_mw))
+        .route_layer(axum::middleware::from_fn(api_key_mw))
+        // This route is specifically here after the route_layer so that the middleware is not
+        // applied to it, downloading endpoint is open.
+        .route("/api/download", get(download_handler))
         .with_state(mm)
 }
 

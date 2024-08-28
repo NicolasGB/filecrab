@@ -27,7 +27,7 @@ reqwest = { version = "0.12", features = ["multipart", "json", "stream"] }
 
 clap = { version = "4.4.18", features = ["derive"] }
 
-age = { version = "0.10" }
+age = { version = "0.10", features = ["async"] }
 file-format = "0.25.0"
 
 #Tracing
