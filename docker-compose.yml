@@ -1,17 +1,19 @@
-version: "3.8"
-
 services:
   filecrab:
     image: filecrab
     depends_on:
       - minio
       - surrealdb
-    ports:
-      - "8080:8080"
     env_file:
       - .env
     volumes:
       - data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.filecrab.rule=(Host(`filecrab.localhost`) && PathPrefix(`/api`))"
+      - "traefik.http.routers.filecrab.priority=52"
+      - "traefik.http.routers.filecrab.entrypoints=web"
+      - "traefik.http.services.filecrab.loadbalancer.server.port=8080"
     networks:
       filecrab:
 
@@ -39,6 +41,30 @@ services:
       - ./data/sdb:/data
     networks:
       filecrab:
+
+  front:
+    image: filecrab-front
+    networks:
+      filecrab:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.front.rule=(Host(`filecrab.localhost`) && PathPrefix(`/`))"
+      - "traefik.http.routers.front.entrypoints=web"
+
+  traefik:
+    image: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    networks:
+      filecrab:
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 networks:
   filecrab:
