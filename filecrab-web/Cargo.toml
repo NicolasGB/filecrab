@@ -11,20 +11,22 @@ edition = "2021"
 dioxus = { version = "0.5", features = ["web", "router"] }
 
 # Debug
-dioxus-logger = "0.5.1"
+dioxus-logger = "0.5"
 manganis = "0.2.2"
 anyhow = "1"
 
 reqwest.workspace = true
 futures-util.workspace = true
 file-format.workspace = true
+file-format.worskpace = true
 
 async-std = { version = "1" }
 
 serde_bytes = { version = "0.11" }
 serde_json = { version = "1.0" }
 
+web-sys = { version = "0.3" }
+
 # We add this as we need the js version for wasm
 getrandom = { version = "0.2", features = ["js"] }
 age.workspace = true
-file-format.worskpace = true

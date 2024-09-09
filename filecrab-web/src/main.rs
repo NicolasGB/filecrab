@@ -7,7 +7,7 @@ use file_format::FileFormat;
 use futures_util::AsyncReadExt;
 use futures_util::{io, StreamExt};
 use reqwest::Client;
-use std::{fmt::Display, time::Duration};
+use std::{fmt::Display, sync::OnceLock, time::Duration};
 
 // Urls are relative to your Cargo.toml file
 const _TAILWIND_URL: &str = manganis::mg!(file("public/tailwind.css"));
@@ -25,7 +25,25 @@ enum Action {
 
 static ACTION_IN_PROGRESS: GlobalSignal<Action> = Signal::global(|| Action::Idle);
 
+static BACKEND_URL: OnceLock<String> = OnceLock::new();
+
 fn main() {
+    // We unwrap since without this we can't actually use our frontend
+    // We do this like this since WASM can't access our env_vars at runtime :(
+    // Quoting Dioxus's creator:
+    //      `Your wasm frontend doesn't have access to your server. If you want to bake the environment variable in at compile time you can use env!("BACKEND_URL")`
+    let window = web_sys::window().unwrap();
+    let location = window.location();
+    let mut href = location.origin().unwrap();
+    if href.ends_with("/") {
+        href = href.trim_end_matches('/').to_string();
+    }
+
+    BACKEND_URL
+        .set(href)
+        .map_err(|err| anyhow!("Could not set oncelock: {err}"))
+        .unwrap();
+
     // Init logger
     dioxus_logger::init(Level::INFO).expect("failed to init logger");
     info!("starting app");
@@ -51,7 +69,8 @@ async fn get_file(id: String, pwd: String) -> Result<(String, Vec<u8>)> {
     let query = vec![("file", &id)];
     info!("before requesting");
     let res = Client::new()
-        .get("http://127.0.0.1:8080/api/download".to_string())
+        // Here it's safe to unwrap since we know for sure it's initialized
+        .get(format!("{}/api/download", BACKEND_URL.get().unwrap()))
         .query(&query)
         .send()
         .await?;
@@ -173,7 +192,7 @@ async fn fetch_file(id: String, pwd: String) -> Result<()> {
 
 #[component]
 fn App() -> Element {
-    let id = use_signal(|| "generator_goggles_optical".to_string());
+    let id = use_signal(|| "".to_string());
     let pwd = use_signal(|| "".to_string());
 
     let fetch_result = use_signal(|| None::<anyhow::Result<()>>);
@@ -250,7 +269,7 @@ fn DownloadForm(
     // Button is disabled unless there is something to sed
     let mut disable_button = use_signal(|| true);
     let mut disable_form = use_signal(|| false);
-    use_memo(move || {
+    use_effect(move || {
         if !id().is_empty() {
             disable_button.set(false);
         } else {

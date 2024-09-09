@@ -4,11 +4,14 @@ RUN apk update
 RUN apk --no-cache add cargo rust-wasm openssl-dev clang16-libclang perl
 RUN apk add --update --no-cache build-base cmake 
 RUN apk add --update --no-cache  linux-headers snappy-dev
-RUN cargo install cargo-binstall && cargo binstall dioxus-cli --no-confirm
+RUN cargo install cargo-binstall 
 
+## INSTALLER
+FROM chef AS installer
+RUN cargo binstall -y dioxus-cli@0.5.7 --locked 
 
 ## BUILDER
-FROM chef AS builder
+FROM installer AS builder
 WORKDIR /app
 COPY . .
 # Enter the filecrab-web dir
@@ -21,4 +24,4 @@ USER nginx
 COPY --from=builder /app/filecrab-web/dist /usr/share/nginx/html
 COPY --from=builder /app/filecrab-web/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 8080
+EXPOSE 80

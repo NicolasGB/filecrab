@@ -12,6 +12,9 @@ rebuild features="" mode="debug":
   just build \"{{features}}\" {{mode}}
   just up
 
+build-front:
+ docker build -f Dockerfile.front . -t filecrab-front
+
 # Run the multi-container application
 up:
   docker-compose up -d --remove-orphans
