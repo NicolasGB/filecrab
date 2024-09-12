@@ -8,10 +8,8 @@ use crate::{config::config, model::ModelManager};
 #[derive(Clone, Deserialize)]
 pub struct Asset {
     pub id: Thing,
-    pub encrypted: bool,
     pub file_name: String,
     pub memo_id: String,
-    pub expire: Option<Datetime>,
 }
 
 #[derive(Clone, Serialize, Debug)]
