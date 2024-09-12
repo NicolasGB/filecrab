@@ -1,41 +1,11 @@
-name: release
+name: release-server
 
 on:
   push:
     tags:
-      - v*
+      - filecrab-server-v*
 
 jobs:
-  release-cli:
-    name: Release CLI
-    runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@1.81
-        with:
-          components: clippy, rustfmt
-
-      - name: Build CLI bin
-        run: |
-          cargo build --package filecrab-cli --release
-          mv target/release/filecrab .
-          tar -zcvf filecrab.tgz filecrab
-
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.FILECRABDEPLOYMENT }}
-          file: filecrab.tgz
-          asset_name: filecrab-$tag.tgz
-          tag: ${{ github.ref }}
-          overwrite: true
-          body: ""
-
   release-filecrab-image:
     name: Release filecrab 
     runs-on: ubuntu-latest
@@ -59,12 +29,22 @@ jobs:
           flavor: |
             latest=false
 
+      - name: Trim prefix from tags
+        id: trim_tags
+        run: |
+          # Extract the version from the GitHub ref
+          VERSION=${GITHUB_REF#refs/tags/filecrab-server-}
+          # Set the trimmed tags
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            nicolasgoutte/filecrab:${{ env.VERSION }}
+            nicolasgoutte/filecrab:latest
           labels: ${{ steps.meta.outputs.labels }}
           build-args: BUILD_MODE=release
 
@@ -89,18 +69,23 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: nicolasgoutte/filecrab
-          flavor: |
-            latest=false
-            prefix=rocksdb-
+
+      - name: Trim prefix from tags
+        id: trim_tags
+        run: |
+          # Extract the version from the GitHub ref
+          VERSION=${GITHUB_REF#refs/tags/filecrab-server-}
+          # Set the trimmed tags
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            nicolasgoutte/filecrab:rocksdb-${{ env.VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_MODE=release 
             FEATURES=rocksdb
-
