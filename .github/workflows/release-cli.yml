@@ -1,0 +1,45 @@
+name: release-cli
+
+on:
+  push:
+    tags:
+      - filecrab-cli-v*
+
+jobs:
+  release-cli:
+    name: Release CLI
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.81
+        with:
+          components: clippy, rustfmt
+
+      - name: Trim prefix from tags
+        id: trim_tags
+        run: |
+          # Extract the version from the GitHub ref
+          VERSION=${GITHUB_REF#refs/tags/filecrab-cli-}
+          # Set the trimmed tags
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Build CLI bin
+        run: |
+          cargo build --package filecrab-cli --release
+          mv target/release/filecrab .
+          tar -zcvf filecrab.tgz filecrab
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.FILECRABDEPLOYMENT }}
+          file: filecrab.tgz
+          asset_name: filecrab-$tag.tgz
+          tag: ${{ env.VERSION }}
+          overwrite: true
+          body: ""

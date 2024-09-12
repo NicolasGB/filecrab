@@ -29,9 +29,6 @@ static BACKEND_URL: OnceLock<String> = OnceLock::new();
 
 fn main() {
     // We unwrap since without this we can't actually use our frontend
-    // We do this like this since WASM can't access our env_vars at runtime :(
-    // Quoting Dioxus's creator:
-    //      `Your wasm frontend doesn't have access to your server. If you want to bake the environment variable in at compile time you can use env!("BACKEND_URL")`
     let window = web_sys::window().unwrap();
     let location = window.location();
     let mut href = location.origin().unwrap();
@@ -63,18 +60,19 @@ impl Display for Action {
 }
 
 async fn get_file(id: String, pwd: String) -> Result<(String, Vec<u8>)> {
+    if id.is_empty() {
+        bail!("File name cannot be empty.")
+    }
     // Set the action to downloading
     *ACTION_IN_PROGRESS.write() = Action::Downloading;
 
     let query = vec![("file", &id)];
-    info!("before requesting");
     let res = Client::new()
         // Here it's safe to unwrap since we know for sure it's initialized
         .get(format!("{}/api/download", BACKEND_URL.get().unwrap()))
         .query(&query)
         .send()
         .await?;
-    info!("after requesting");
 
     // Checks if there's been an error.
     if !res.status().is_success() {
