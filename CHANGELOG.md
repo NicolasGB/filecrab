@@ -7,6 +7,18 @@ All notable changes to this project will be documented in this file.
 ### 🚀 Features
 
 - *(cli)* Add styles
+- *(cli)* Detect encrypted files and prompt while execution for encryption and decryption
+
+### 🐛 Bug Fixes
+
+- Use as ref when needed
+- Cli now downlaods correctly and finished the bar
+- Update query to use simple = instead of ==
+- *(deps)* Update deps and code to match new tower layering
+
+### CI
+
+- Test new tar release
 
 ## [0.2.0] - 2024-05-23
 
