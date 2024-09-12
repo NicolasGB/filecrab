@@ -21,9 +21,12 @@ use std::{iter::once, time::Duration};
 use tokio::{net::TcpListener, signal};
 use tower::ServiceBuilder;
 use tower_http::{
+    compression::CompressionLayer,
+    map_response_body::MapResponseBodyLayer,
     sensitive_headers::SetSensitiveHeadersLayer,
+    set_header::SetResponseHeaderLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
-    LatencyUnit, ServiceBuilderExt,
+    LatencyUnit,
 };
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -55,14 +58,14 @@ async fn main() -> Result<()> {
                     .on_response(DefaultOnResponse::new().include_headers(true).latency_unit(LatencyUnit::Micros)),
             )
             // Box the response body so it implements `Default` which is required by axum
-            .map_response_body(axum::body::Body::new)
+            .layer(MapResponseBodyLayer::new(axum::body::Body::new))
             // Compress responses
-            .compression()
+            .layer(CompressionLayer::new())
             // Set a `Content-Type` if there isn't one already.
-            .insert_response_header_if_not_present(
+            .layer(SetResponseHeaderLayer::if_not_present(
                 header::CONTENT_TYPE,
                 HeaderValue::from_static("application/json"),
-            );
+            ));
 
     // Setup cleaning with a schedule
     let mut scheduler = AsyncScheduler::with_tz(chrono::Utc);

@@ -34,7 +34,7 @@ type SurrealConnection = Surreal<surrealdb::engine::local::Db>;
 #[derive(Debug, Clone)]
 pub struct ModelManager {
     //Bucket is clonable as its references are behind an arc
-    bucket: Bucket,
+    bucket: Box<Bucket>,
     //Surrealdb is also clonable
     db: SurrealConnection,
 }
@@ -89,7 +89,7 @@ impl ModelManager {
     }
 
     /// Function that tries to connect to the bucket and creates it
-    async fn connect_minio() -> Result<Bucket> {
+    async fn connect_minio() -> Result<Box<Bucket>> {
         let bucket_name = &config().S3_BUCKET_NAME;
 
         let region = Region::Custom {
