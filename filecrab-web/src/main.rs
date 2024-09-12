@@ -35,7 +35,7 @@ fn main() {
     let window = web_sys::window().unwrap();
     let location = window.location();
     let mut href = location.origin().unwrap();
-    if href.ends_with("/") {
+    if href.ends_with('/') {
         href = href.trim_end_matches('/').to_string();
     }
 
@@ -184,7 +184,7 @@ async fn fetch_file(id: String, pwd: String) -> Result<()> {
         .send(file_name.into())
         .map_err(|err| anyhow!("{err:?}").context("could not eval filename"))?;
     new_eval
-        .send(serde_json::to_value(&data_value)?)
+        .send(serde_json::to_value(data_value)?)
         .map_err(|err| anyhow!("{err:?}").context("could not eval data"))?;
 
     Ok(())

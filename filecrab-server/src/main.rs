@@ -22,6 +22,7 @@ use tokio::{net::TcpListener, signal};
 use tower::ServiceBuilder;
 use tower_http::{
     compression::CompressionLayer,
+    cors::{Any, CorsLayer},
     map_response_body::MapResponseBodyLayer,
     sensitive_headers::SetSensitiveHeadersLayer,
     set_header::SetResponseHeaderLayer,
@@ -73,7 +74,8 @@ async fn main() -> Result<()> {
             .layer(SetResponseHeaderLayer::if_not_present(
                 header::CONTENT_TYPE,
                 HeaderValue::from_static("application/json"),
-            ));
+            ))
+            .layer(cors);
 
     // Setup cleaning with a schedule
     let mut scheduler = AsyncScheduler::with_tz(chrono::Utc);
