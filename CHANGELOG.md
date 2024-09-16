@@ -2,12 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.3.0] - 2024-09-16
 
 ### 🚀 Features
 
 - *(cli)* Add styles
 - *(cli)* Detect encrypted files and prompt while execution for encryption and decryption
+- *(web)* Init frontend-web
 
 ### 🐛 Bug Fixes
 
@@ -15,10 +16,16 @@ All notable changes to this project will be documented in this file.
 - Cli now downlaods correctly and finished the bar
 - Update query to use simple = instead of ==
 - *(deps)* Update deps and code to match new tower layering
+- *(web)* Implement donwloading and decrypting assets
+- *(web)* Read while decrypting manually, remove middleware for downloading files
+- *(web)* Add front image build, add traefick to the docker compose
+- Update deps
 
 ### CI
 
 - Test new tar release
+- Add github action for building the front end
+- Split ci in different tags for more granular builds
 
 ## [0.2.0] - 2024-05-23
 
