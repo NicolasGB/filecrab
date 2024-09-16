@@ -29,6 +29,7 @@ A useful [CLI](#cli) will allow you to upload files and text to an instance.
   [Magic Wormhole](https://github.com/magic-wormhole/magic-wormhole.rs).
 - Server can be run in distant or embedded mode.
 - The cli can manage multiple instances of filecrab.
+- A web front end to download files directly from the web.
 
 ## Security
 
@@ -45,6 +46,9 @@ the server.
     - [Running](#running)
   - [Docker](#docker)
   - [Deployment](#deployment)
+- [Web](#web)
+  - [Deployment](#deployment-2)
+  - [Running](#running-1)
 - [CLI](#cli)
   - [Installation](#installation)
     - [Arch Linux](#arch-linux)
@@ -118,6 +122,21 @@ To deploy the server, you need to set up the following services:
 #### Server configuration
 
 Please refer to the [example](.env.example) for the server configuration.
+
+## Web
+
+<img src="web_view.png" alt="web_view" />
+
+You can deploy a front end fully made in Rust with [dioxus](https://dioxuslabs.com/). It will allow users to download files directly from the web. Useful for those not familiar with CLI tools.
+
+### Deployment
+
+You simply need to download the [docker image](https://hub.docker.com/repository/docker/nicolasgoutte/filecrab-web).
+
+> [!WARNING]
+> For the front end to be able to communicate to the backend you MUST deploy it under the same origin.
+>
+> Ex. Frontend: `https://my.filecrab.instance.com` then your backend should be under: `https://my.filecrab.instance.com/api`. Make sure when exposing `/api` has priority over the frontend.
 
 ## CLI
 
