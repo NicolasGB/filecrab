@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [filecrab-web-v0.1.1] - 2024-09-23
+
+### 🐛 Bug Fixes
+
+- *(web)* Use port 8080 instead of 80
+
 ## [0.3.0] - 2024-09-16
 
 ### 🚀 Features
