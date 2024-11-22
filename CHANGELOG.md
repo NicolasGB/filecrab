@@ -2,32 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [filecrab-web-v0.1.2, filecrab-cli-v0.3.1, filecrab-server-v0.3.1] - 2024-11-22
+
+### 🐛 Bug Fixes
+
+- _(all)_ Update deps, refactor code to fix the breaking sin age
+
 ## [filecrab-web-v0.1.1] - 2024-09-23
 
 ### 🐛 Bug Fixes
 
-- *(web)* Use port 8080 instead of 80
+- _(web)_ Use port 8080 instead of 80
 
 ## [0.3.0] - 2024-09-16
 
 ### 🚀 Features
 
-- *(cli)* Add styles
-- *(cli)* Detect encrypted files and prompt while execution for encryption and decryption
-- *(web)* Init frontend-web
+- _(cli)_ Add styles
+- _(cli)_ Detect encrypted files and prompt while execution for encryption and decryption
+- _(web)_ Init frontend-web
 
 ### 🐛 Bug Fixes
 
 - Use as ref when needed
 - Cli now downlaods correctly and finished the bar
 - Update query to use simple = instead of ==
-- *(deps)* Update deps and code to match new tower layering
-- *(web)* Implement donwloading and decrypting assets
-- *(web)* Read while decrypting manually, remove middleware for downloading files
-- *(web)* Add front image build, add traefick to the docker compose
+- _(deps)_ Update deps and code to match new tower layering
+- _(web)_ Implement donwloading and decrypting assets
+- _(web)_ Read while decrypting manually, remove middleware for downloading files
+- _(web)_ Add front image build, add traefick to the docker compose
 - Update deps
 
-### CI
+### 💼 Other
 
 - Test new tar release
 - Add github action for building the front end
@@ -37,122 +43,122 @@ All notable changes to this project will be documented in this file.
 
 ### 🚀 Features
 
-- *(cli)* Handle multiple instances of filecrabs
-- *(cli)* Add a command to `add` instances to a filecrab config
-- *(cli)* Add a command to `remove` an exisiting instance from a filecrab config
-- *(cli)* Add init command, to initialize filecrab's config without running anything
+- _(cli)_ Handle multiple instances of filecrabs
+- _(cli)_ Add a command to `add` instances to a filecrab config
+- _(cli)_ Add a command to `remove` an exisiting instance from a filecrab config
+- _(cli)_ Add init command, to initialize filecrab's config without running anything
 
 ### 🐛 Bug Fixes
 
-- *(cli)* Improve copied text for commands, it now includes the command to retreive the text/file instead of only the `memorable_word_list`
+- _(cli)_ Improve copied text for commands, it now includes the command to retreive the text/file instead of only the `memorable_word_list`
 
 ## [0.1.1] - 2024-04-22
 
 ### 🐛 Bug Fixes
 
-- *(readme)* Add aur information
-- *(deps)* Update deps
-- *(cli)* Handle upload errors gracefully and update deps
-- *(server)* Mark filecrab key header as sensitive
-- *(changelog)* Add changelog with git cliff
+- _(readme)_ Add aur information
+- _(deps)_ Update deps
+- _(cli)_ Handle upload errors gracefully and update deps
+- _(server)_ Mark filecrab key header as sensitive
+- _(changelog)_ Add changelog with git cliff
 
 ## [0.1.0] - 2024-03-27
 
 ### 🚀 Features
 
-- *(filecrab)* Implement upload and download
-- *(docker, routes)* Add dockerfile and dockercompose, add routes middleware
-- *(docker)* Use multistage build and cargo chef
-- *(asset)* Add creating an asset with and without password
-- *(upload)* Stream from multipart to s3
-- *(download)* Stream download
-- *(middleware)* Implement simple api key based middleware
-- *(cli)* Init cli project
-- *(clipboard)* Add copying upload response to clipboard
-- *(asset)* Create memorizable word list and use it when saving assets
-- *(cli)* Add downloading file
-- *(text)* Implement text copy and paste handler with age text encryption
-- *(cli)* Add copy and paste commands
-- *(cli)* Add init config if not set
-- *(cli)* Decrypt correctly ty @mmalecot
-- *(server)* Add  server wrapped in the cli, add delete old asset
-- *(server)* In the clean command correctly delete from the minio too
-- *(server)* Start migration to thiserror
-- *(cli)* Paste can now read piped data
-- *(just)* Swith to just instead of make
-- *(cli)* Replace anyhow with thiserror
-- *(server)* Allow chosing the engine
-- *(server)* Update docker to match new conditional compilation requirements
-- *(cli)* Add inquire for user prompts. Bump dependencies
-- *(cd)* Add release actions
-- *(cd)* Add publishing docker image
+- _(filecrab)_ Implement upload and download
+- _(docker, routes)_ Add dockerfile and dockercompose, add routes middleware
+- _(docker)_ Use multistage build and cargo chef
+- _(asset)_ Add creating an asset with and without password
+- _(upload)_ Stream from multipart to s3
+- _(download)_ Stream download
+- _(middleware)_ Implement simple api key based middleware
+- _(cli)_ Init cli project
+- _(clipboard)_ Add copying upload response to clipboard
+- _(asset)_ Create memorizable word list and use it when saving assets
+- _(cli)_ Add downloading file
+- _(text)_ Implement text copy and paste handler with age text encryption
+- _(cli)_ Add copy and paste commands
+- _(cli)_ Add init config if not set
+- _(cli)_ Decrypt correctly ty @mmalecot
+- _(server)_ Add server wrapped in the cli, add delete old asset
+- _(server)_ In the clean command correctly delete from the minio too
+- _(server)_ Start migration to thiserror
+- _(cli)_ Paste can now read piped data
+- _(just)_ Swith to just instead of make
+- _(cli)_ Replace anyhow with thiserror
+- _(server)_ Allow chosing the engine
+- _(server)_ Update docker to match new conditional compilation requirements
+- _(cli)_ Add inquire for user prompts. Bump dependencies
+- _(cd)_ Add release actions
+- _(cd)_ Add publishing docker image
 
 ### 🐛 Bug Fixes
 
-- *(error)* Avoid panicking creating response
+- _(error)_ Avoid panicking creating response
 - Add .env.example
-- *(asset)* Download and search correctly via surrealdb
-- *(asset)* Send conent length from file
-- *(cli)* Fix typo
-- *(dockerfile, typos)* Use alpine for slimmer final image and fix typos
+- _(asset)_ Download and search correctly via surrealdb
+- _(asset)_ Send conent length from file
+- _(cli)_ Fix typo
+- _(dockerfile, typos)_ Use alpine for slimmer final image and fix typos
 - Remove unnecessary comment
 - Build only server in docker image and add lto flag for release binaries
-- *(server)* Remove anyhow from server, handle statsus codes
-- *(cli)* Add spinners
-- *(docker)* Add multiple build envs
-- *(server)* Rename server package
-- *(pipeline)* Updates pipeline
-- *(pipeline)* Updates pipeline
-- *(server)* Stop storing password and remove argon2
-- *(cli)* Remove sending password to filecrab
-- *(server)* Handle gracefully http errors from s3, they are now propagated to the API's response
-- *(server)* Update code to non deprecated functions to chrono
-- *(pipeline)* Use cache with Cargo
-- *(pipeline)* Fix pipeline
-- *(pipeline)* Updates actions/cache
-- *(server,cli)* Remove server side encryption of the text, add client side encryption, delete text after retrieval
-- *(pipeline)* Move format to a dedicated job
-- *(pipeline)* Rename pipeline to ci
-- *(docker)* Use only one Dockerfile and improve docker-compose
-- *(docker)* Add usage by default on make
-- *(docker)* Add more release flags to filecrab
-- *(docs)* Adds detailed README
-- *(readme)* Update README
-- *(badges)* Fix CI badge
-- *(.env.example)* Document the fields
-- *(cli)* Rename binary build, use option instead of default and better pattern matching
+- _(server)_ Remove anyhow from server, handle statsus codes
+- _(cli)_ Add spinners
+- _(docker)_ Add multiple build envs
+- _(server)_ Rename server package
+- _(pipeline)_ Updates pipeline
+- _(pipeline)_ Updates pipeline
+- _(server)_ Stop storing password and remove argon2
+- _(cli)_ Remove sending password to filecrab
+- _(server)_ Handle gracefully http errors from s3, they are now propagated to the API's response
+- _(server)_ Update code to non deprecated functions to chrono
+- _(pipeline)_ Use cache with Cargo
+- _(pipeline)_ Fix pipeline
+- _(pipeline)_ Updates actions/cache
+- _(server,cli)_ Remove server side encryption of the text, add client side encryption, delete text after retrieval
+- _(pipeline)_ Move format to a dedicated job
+- _(pipeline)_ Rename pipeline to ci
+- _(docker)_ Use only one Dockerfile and improve docker-compose
+- _(docker)_ Add usage by default on make
+- _(docker)_ Add more release flags to filecrab
+- _(docs)_ Adds detailed README
+- _(readme)_ Update README
+- _(badges)_ Fix CI badge
+- _(.env.example)_ Document the fields
+- _(cli)_ Rename binary build, use option instead of default and better pattern matching
 - Remove trailing whitspace in match
-- *(just)* Fix typo
-- *(cli)* Add optional out file when copying text
-- *(cli)* Try to open file even before requesting the server
-- *(cli)* Improve comment
-- *(cli)* Safely open and delete file to make sure user made no typo in command
-- *(cli)* Switch to raw identifier
-- *(cli)* Replace wrong message
-- *(cd)* Update token name
-- *(cd)* Update asset_name
-- *(ci,cd)* Use dtolnay's rust action
-- *(cd)* Try better usage for meta action
-- *(cd)* Update tag
-- *(readme)* Improve CLI docs
-- *(readme)* Add TOC
-- *(readme)* Use correct headline for help
-- *(readme, config)* Update config names and imporve example and readme of the server
-- *(readme)* Add more detailed info
-- *(server)* Add text cleaning
-- *(readme)* Add correct TOC
-- *(server)* Improve connection error message
-- *(server)* Create a job that runs the cleanup on a separated green thread
-- *(server)* Remove non needed ARC and remove Clap
-- *(readme)* Update accroding new feature
-- *(justfile)* Fix empty param management
-- *(cargo)* Update package info
-- *(server)* Remove unused expire field
-- *(cd)* Update to fixed version
+- _(just)_ Fix typo
+- _(cli)_ Add optional out file when copying text
+- _(cli)_ Try to open file even before requesting the server
+- _(cli)_ Improve comment
+- _(cli)_ Safely open and delete file to make sure user made no typo in command
+- _(cli)_ Switch to raw identifier
+- _(cli)_ Replace wrong message
+- _(cd)_ Update token name
+- _(cd)_ Update asset_name
+- _(ci,cd)_ Use dtolnay's rust action
+- _(cd)_ Try better usage for meta action
+- _(cd)_ Update tag
+- _(readme)_ Improve CLI docs
+- _(readme)_ Add TOC
+- _(readme)_ Use correct headline for help
+- _(readme, config)_ Update config names and imporve example and readme of the server
+- _(readme)_ Add more detailed info
+- _(server)_ Add text cleaning
+- _(readme)_ Add correct TOC
+- _(server)_ Improve connection error message
+- _(server)_ Create a job that runs the cleanup on a separated green thread
+- _(server)_ Remove non needed ARC and remove Clap
+- _(readme)_ Update accroding new feature
+- _(justfile)_ Fix empty param management
+- _(cargo)_ Update package info
+- _(server)_ Remove unused expire field
+- _(cd)_ Update to fixed version
 
 ### 🚜 Refactor
 
-- *(model_manager, surrealdb)* Stop unwrapping and implement good error handling, also add surrealdb
+- _(model_manager, surrealdb)_ Stop unwrapping and implement good error handling, also add surrealdb
 - Improve errornames
 
 <!-- generated by git-cliff -->

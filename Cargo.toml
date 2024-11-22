@@ -17,7 +17,7 @@ serde_with = "3"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7" }
 axum = { version = "0.7", features = ["macros", "multipart"] }
-tower-http = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["full"] }
 tower = { version = "0.5", features = ["filter"] }
 tower-cookies = "0.10"
 futures = { version = "0.3" }
@@ -27,11 +27,11 @@ reqwest = { version = "0.12", features = ["multipart", "json", "stream"] }
 
 clap = { version = "4.4.18", features = ["derive"] }
 
-age = { version = "0.10", features = ["async"] }
-file-format = "0.25.0"
+age = { version = "0.11", features = ["async"] }
+file-format = "0.26.0"
 
 #Tracing
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "fmt"] }
 tracing = "0.1.40"
 
-thiserror = "1"
+thiserror = "2"

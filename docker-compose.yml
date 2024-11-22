@@ -11,7 +11,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.filecrab.rule=(Host(`filecrab.localhost`) && PathPrefix(`/api`))"
-      - "traefik.http.routers.filecrab.priority=52"
+      - "traefik.http.routers.filecrab.priority=60"
       - "traefik.http.routers.filecrab.entrypoints=web"
       - "traefik.http.services.filecrab.loadbalancer.server.port=8080"
     networks:

@@ -30,7 +30,7 @@ pub struct Config {
     pub DB_HOST_OR_PATH: String,
     pub DB_NS: String,
     pub DB_DBNAME: String,
-    // In rocksdb mode there's no auth and clippy isn't happy
+
     #[expect(unused)]
     // In rocksdb mode there's no auth and clippy isn't happy
     pub DB_USER: String,

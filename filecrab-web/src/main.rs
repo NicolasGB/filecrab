@@ -1,4 +1,4 @@
-use age::{secrecy::Secret, Decryptor};
+use age::{secrecy::SecretString, Decryptor};
 use anyhow::{anyhow, bail, Result};
 use async_std::task::sleep;
 use dioxus::prelude::*;
@@ -122,12 +122,11 @@ async fn get_file(id: String, pwd: String) -> Result<(String, Vec<u8>)> {
 /// original content.
 /// Uses the age algorithm.
 async fn decrypt_slice(buf: &[u8], pwd: String) -> anyhow::Result<Vec<u8>> {
-    let decryptor = match Decryptor::new_async_buffered(buf).await? {
-        Decryptor::Passphrase(decryptor) => decryptor,
-        _ => unreachable!(),
-    };
+    let decryptor = Decryptor::new_async_buffered(buf).await?;
     let mut output = vec![];
-    let mut reader = decryptor.decrypt_async(&Secret::new(pwd), None)?;
+    let mut reader = decryptor.decrypt_async(std::iter::once(&age::scrypt::Identity::new(
+        SecretString::from(pwd),
+    ) as _))?;
 
     // Set the action to decrypting
     *ACTION_IN_PROGRESS.write() = Action::Decrypting;

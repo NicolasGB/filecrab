@@ -1,7 +1,7 @@
 mod config;
 
 use crate::{cli::config::Instance, error::Error, Result};
-use age::{secrecy::Secret, Decryptor, Encryptor};
+use age::{secrecy::SecretString, Decryptor, Encryptor};
 use anstyle::AnsiColor;
 use arboard::Clipboard;
 use clap::{builder::Styles, Parser, Subcommand};
@@ -19,6 +19,7 @@ use std::{
     cmp::min,
     env,
     io::{self, IsTerminal, Read, Write},
+    iter,
     path::{Path, PathBuf},
     time::Duration,
     vec,
@@ -512,13 +513,13 @@ impl Cli {
     /// original content.
     /// Uses the age algorithm.
     fn decrypt_slice(buf: &[u8], pwd: String) -> Result<Vec<u8>> {
-        let decryptor = match Decryptor::new(buf).map_err(Error::CreateDecryptor)? {
-            Decryptor::Passphrase(decryptor) => decryptor,
-            _ => unreachable!(),
-        };
+        let decryptor = Decryptor::new(buf).map_err(Error::CreateDecryptor)?;
+
         let mut output = vec![];
         let mut reader = decryptor
-            .decrypt(&Secret::new(pwd), None)
+            .decrypt(iter::once(
+                &age::scrypt::Identity::new(SecretString::from(pwd)) as _,
+            ))
             .map_err(Error::FailedToDecrypt)?;
         reader
             .read_to_end(&mut output)
@@ -531,7 +532,7 @@ impl Cli {
 
     /// Given a slice of bytes and a password encrypts the value and returns the resulting encryption.
     fn encrypt_slice(bytes: &[u8], pwd: String) -> Result<Vec<u8>> {
-        let encryptor = Encryptor::with_user_passphrase(Secret::new(pwd));
+        let encryptor = Encryptor::with_user_passphrase(SecretString::from(pwd));
         let mut output = Vec::new();
         let mut writer = encryptor
             .wrap_output(&mut output)

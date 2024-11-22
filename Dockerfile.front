@@ -19,6 +19,10 @@ RUN cd filecrab-web && $HOME/.cargo/bin/dx build --release
 
 ## RUNTIME
 FROM nginxinc/nginx-unprivileged:stable-alpine AS runtime
+
+# Temporarily switch to root to install packages
+USER root
+
 USER nginx
 
 COPY --from=builder /app/filecrab-web/dist /usr/share/nginx/html

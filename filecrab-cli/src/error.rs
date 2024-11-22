@@ -1,6 +1,6 @@
 use std::{io, string::FromUtf8Error};
 
-use age::{DecryptError, EncryptError};
+use age::DecryptError;
 use indicatif::style::TemplateError;
 use inquire::InquireError;
 use reqwest::header::ToStrError;
@@ -64,7 +64,7 @@ pub enum Error {
 
     // Encryption
     #[error("failed to wrap writer with encryptor")]
-    EncryptionWriterWrap(#[source] EncryptError),
+    EncryptionWriterWrap(#[source] std::io::Error),
     #[error("failed to finish encryption")]
     FinishEncryption(#[source] io::Error),
     #[error("failed to create decryptor")]
@@ -73,9 +73,9 @@ pub enum Error {
     FailedToDecrypt(#[source] DecryptError),
 
     // Reader and Writer
-    #[error("could not write to {r#type} writer")]
+    #[error("could not write to {type} writer")]
     WriteToWriter { r#type: String, source: io::Error },
-    #[error("could not read from {r#type} reader")]
+    #[error("could not read from {type} reader")]
     ReadFromReader { r#type: String, source: io::Error },
 
     //Http
