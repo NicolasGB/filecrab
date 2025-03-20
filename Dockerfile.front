@@ -8,14 +8,14 @@ RUN cargo install cargo-binstall
 
 ## INSTALLER
 FROM chef AS installer
-RUN cargo binstall -y dioxus-cli@0.5.7 --locked 
+RUN cargo binstall -y dioxus-cli@0.6.3
 
 ## BUILDER
 FROM installer AS builder
 WORKDIR /app
 COPY . .
 # Enter the filecrab-web dir
-RUN cd filecrab-web && $HOME/.cargo/bin/dx build --release
+RUN cd filecrab-web && $HOME/.cargo/bin/dx bundle
 
 ## RUNTIME
 FROM nginxinc/nginx-unprivileged:stable-alpine AS runtime

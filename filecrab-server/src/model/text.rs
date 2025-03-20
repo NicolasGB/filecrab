@@ -23,7 +23,7 @@ pub struct TextToCreate {
 }
 
 impl Text {
-    pub async fn create(mm: ModelManager, data: &mut TextToCreate) -> Result<Text> {
+    pub async fn create(mm: ModelManager, mut data: TextToCreate) -> Result<Text> {
         let db = mm.db();
         // Set a memo_id
         data.memo_id = memorable_wordlist::snake_case(40);
@@ -32,15 +32,13 @@ impl Text {
         let expire = Utc::now() + config().DEFAULT_EXPIRE_TIME;
         data.expire = expire.into();
 
-        let res: Vec<Text> = db
+        let res: Option<Text> = db
             .create("text")
             .content(data)
             .await
             .map_err(ModelManagerError::CreateText)?;
 
-        res.into_iter()
-            .next()
-            .ok_or_else(|| ModelManagerError::TextNotFound)
+        res.ok_or_else(|| ModelManagerError::TextNotFound)
     }
 
     pub async fn read(mm: ModelManager, memo_id: String) -> Result<Text> {
@@ -75,7 +73,7 @@ impl Text {
 
         let _ = db
             .query("DELETE text WHERE expire <= $now")
-            .bind(("now", &now))
+            .bind(("now", now))
             .await
             .map_err(ModelManagerError::DeleteText)?;
 

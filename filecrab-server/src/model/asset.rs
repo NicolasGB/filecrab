@@ -21,7 +21,7 @@ pub struct AssetToCreate {
 }
 
 impl Asset {
-    pub async fn create(mm: ModelManager, id: &str, data: &mut AssetToCreate) -> Result<Asset> {
+    pub async fn create(mm: ModelManager, id: &str, mut data: AssetToCreate) -> Result<Asset> {
         let db = mm.db();
 
         // Add an expire time if it's not set
@@ -48,7 +48,7 @@ impl Asset {
 
         let res: Option<Asset> = db
             .query("SELECT * FROM asset WHERE memo_id = $memo_id LIMIT 1")
-            .bind(("memo_id", memo_id))
+            .bind(("memo_id", memo_id.to_string()))
             .await
             .map_err(ModelManagerError::SearchAsset)?
             .take(0)
@@ -65,7 +65,7 @@ impl Asset {
         // Get all deletable assets
         let res: Vec<Thing> = db
             .query("SELECT id FROM asset WHERE expire <= $now")
-            .bind(("now", &now))
+            .bind(("now", now.clone()))
             .await
             .map_err(ModelManagerError::DeleteAsset)?
             .take((0, "id"))
@@ -76,7 +76,7 @@ impl Asset {
 
         let _ = db
             .query("DELETE asset WHERE expire <= $now")
-            .bind(("now", &now))
+            .bind(("now", now.clone()))
             .await
             .map_err(ModelManagerError::DeleteAsset)?;
 
