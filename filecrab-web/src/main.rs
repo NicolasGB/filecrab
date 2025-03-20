@@ -1,18 +1,19 @@
-use age::{secrecy::SecretString, Decryptor};
-use anyhow::{anyhow, bail, Result};
+use age::{Decryptor, secrecy::SecretString};
+use anyhow::{Result, anyhow, bail};
 use async_std::task::sleep;
 use dioxus::prelude::*;
-use dioxus_logger::tracing::{info, Level};
+use dioxus_logger::tracing::{Level, info};
+use document::eval;
 use file_format::FileFormat;
 use futures_util::AsyncReadExt;
-use futures_util::{io, StreamExt};
+use futures_util::{StreamExt, io};
 use reqwest::Client;
 use std::{fmt::Display, sync::OnceLock, time::Duration};
 
 // Urls are relative to your Cargo.toml file
-const _TAILWIND_URL: &str = manganis::mg!(file("public/tailwind.css"));
+const TAILWIND_CSS: Asset = asset!("public/tailwind.css");
 
-const ASSET: manganis::ImageAsset = manganis::mg!(image("assets/logo.png"));
+const ASSET: Asset = asset!("assets/logo.png");
 
 // Define a global signal holding the action state
 enum Action {
@@ -178,7 +179,7 @@ async fn fetch_file(id: String, pwd: String) -> Result<()> {
     let data_value = serde_bytes::ByteBuf::from(data);
 
     new_eval
-        .send(file_name.into())
+        .send(file_name)
         .map_err(|err| anyhow!("{err:?}").context("could not eval filename"))?;
     new_eval
         .send(serde_json::to_value(data_value)?)
@@ -204,13 +205,14 @@ fn App() -> Element {
     });
 
     rsx! {
+        document::Link{rel: "stylesheet", href: TAILWIND_CSS}
         div { class: "container mx-auto max-w-screen-xl px-6",
             img { class: "mx-auto", src: "{ASSET}" },
             DownloadForm { id, pwd, fetch_result }
             {
                 match &*ACTION_IN_PROGRESS.read() {
                     Action::Idle => {
-                        None
+                        rsx! {}
                     },
                     Action::PreparingDecryption | Action::FinishingFile => {
                         rsx!{
@@ -240,7 +242,7 @@ fn App() -> Element {
             {
                 match &*fetch_result.read() {
                     Some(Ok(_)) => {
-                        None
+                        rsx!{}
                     },
                     Some(Err(err)) => {
                         rsx!{
@@ -250,7 +252,7 @@ fn App() -> Element {
                                 }
                         }
                     },
-                    None => {None},
+                    None => {rsx!{}},
                 }
             }
         }
@@ -421,6 +423,6 @@ fn ErrorToast(err: String, show: Signal<bool, SyncStorage>) -> Element {
             }
         }
     } else {
-        None
+        rsx! {}
     }
 }
