@@ -33,7 +33,7 @@ services:
     env_file:
       - .env
     restart: unless-stopped
-    command: start --user $DB_USER --pass $DB_PASSWORD --log $DB_LOG file:/data/database.db
+    command: start --user $DB_USER --pass $DB_PASSWORD --log $DB_LOG rocksdb:/data/database.db
     user: root
     ports:
       - 8000:8000

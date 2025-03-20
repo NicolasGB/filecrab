@@ -6,13 +6,13 @@ use std::io;
 
 pub use error::{ModelManagerError, Result};
 
-use axum::{body::Bytes, BoxError};
+use axum::{BoxError, body::Bytes};
 use futures::{Stream, TryStreamExt};
 use surrealdb::Surreal;
 use tokio_util::io::StreamReader;
 
 use crate::config::config;
-use s3::{creds::Credentials, request::ResponseDataStream, Bucket, BucketConfiguration, Region};
+use s3::{Bucket, BucketConfiguration, Region, creds::Credentials, request::ResponseDataStream};
 
 #[cfg(not(feature = "rocksdb"))]
 /// If the feature rocksdb is not enabled, use a websocket connection
@@ -33,9 +33,9 @@ type SurrealConnection = Surreal<surrealdb::engine::local::Db>;
 
 #[derive(Debug, Clone)]
 pub struct ModelManager {
-    //Bucket is clonable as its references are behind an arc
+    //Bucket is cloneable as its references are behind an arc
     bucket: Box<Bucket>,
-    //Surrealdb is also clonable
+    //Surrealdb is also cloneable
     db: SurrealConnection,
 }
 

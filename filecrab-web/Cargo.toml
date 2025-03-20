@@ -25,6 +25,6 @@ serde_json = { version = "1.0" }
 
 web-sys = { version = "0.3" }
 
-# We add this as we need the js version for wasm
+# We add this as we need the js version for wasm, as of now should remain pinned until age updates it to avoid missmatch of versions
 getrandom = { version = "0.2", features = ["js"] }
 age.workspace = true

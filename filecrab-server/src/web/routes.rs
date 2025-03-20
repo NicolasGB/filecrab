@@ -1,24 +1,24 @@
 use axum::{
+    Json, Router,
     body::Body,
     debug_handler,
     extract::{DefaultBodyLimit, Multipart, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
 };
-use rand::distributions::{Alphanumeric, DistString};
+use rand::distr::{Alphanumeric, SampleString};
 use serde::{Deserialize, Serialize};
 use tower_http::limit::RequestBodyLimitLayer;
 
 use crate::{
     config::config,
     model::{
+        ModelManager,
         asset::{Asset, AssetToCreate},
         text::{Text, TextToCreate},
-        ModelManager,
     },
-    web::{middleware::api_key_mw, Error, Result},
+    web::{Error, Result, middleware::api_key_mw},
 };
 
 pub fn routes(mm: ModelManager) -> Router {
@@ -48,7 +48,7 @@ async fn upload_handler(
     mut multipart: Multipart,
 ) -> Result<Json<CreateResponse>> {
     //First we generate an id which will be used for the file and the db
-    let token = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
+    let token = Alphanumeric.sample_string(&mut rand::rng(), 16);
 
     // Prepare asset to create
     let mut asset_to_create = AssetToCreate {
@@ -86,7 +86,7 @@ async fn upload_handler(
 
     if has_file {
         //First we store the reference
-        let asset = Asset::create(mm.clone(), &token, &mut asset_to_create).await?;
+        let asset = Asset::create(mm.clone(), &token, asset_to_create).await?;
 
         //copy the id to the the response
         resp.id = asset.memo_id
@@ -123,12 +123,12 @@ async fn download_handler(
 #[debug_handler]
 async fn paste_handler(
     State(mm): State<ModelManager>,
-    Json(mut body): Json<TextToCreate>,
+    Json(body): Json<TextToCreate>,
 ) -> Result<Response> {
     if body.content.is_empty() {
         return Ok(StatusCode::BAD_REQUEST.into_response());
     }
-    let text = Text::create(mm.clone(), &mut body).await?;
+    let text = Text::create(mm.clone(), body).await?;
 
     let res = CreateResponse {
         id: text.memo_id.to_string(),
