@@ -2,23 +2,21 @@
 name = "filecrab-web"
 version = "0.1.0"
 authors = ["NicolasGB <ngou0210@gmail.com>"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 
-dioxus = { version = "0.5", features = ["web", "router"] }
+dioxus = { version = "0.6", features = ["web", "router"] }
 
 # Debug
-dioxus-logger = "0.5"
-manganis = "0.2.2"
+dioxus-logger = "0.6"
 anyhow = "1"
 
 reqwest.workspace = true
 futures-util.workspace = true
 file-format.workspace = true
-file-format.worskpace = true
 
 async-std = { version = "1" }
 

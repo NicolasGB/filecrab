@@ -27,17 +27,10 @@ reload_html = true
 watch_path = ["src", "assets"]
 
 # include `assets` in web platform
-[web.resource]
 
 # CSS style file
 
 style = ["/tailwind.css"]
 
 # Javascript code file
-script = []
-
-[web.resource.dev]
-
-# Javascript code file
-# serve: [dev-server] only
 script = []
