@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [filecrab-web-v0.1.2, filecrab-cli-v0.3.1, filecrab-server-v0.3.1] - 2024-11-22
+## [filecrab-web-v0.4.0, filecrab-sever-v0.4.0, filecrab-cli-v0.4.0] - 2025-03-21
+
+### 🚀 Features
+
+- _(server)_ [**breaking**] Update to "Any" engine in surreal db
+
+### 🐛 Bug Fixes
+
+- _(web,cli,server)_ Bump everything to edition 2024 and add wayland support for cli
+- _(server)_ Update surrealdb to v2 and fix all related breakings
+
+## [0.3.1] - 2024-11-22
 
 ### 🐛 Bug Fixes
 

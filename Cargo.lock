@@ -2277,7 +2277,7 @@ checksum = "e7ef3d5e8ae27277c8285ac43ed153158178ef0f79567f32024ca8140a0c7cd8"
 
 [[package]]
 name = "filecrab-cli"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "age",
  "anstyle",
@@ -2298,7 +2298,7 @@ dependencies = [
 
 [[package]]
 name = "filecrab-server"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "axum",
  "chrono",
@@ -2323,7 +2323,7 @@ dependencies = [
 
 [[package]]
 name = "filecrab-web"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "age",
  "anyhow",
