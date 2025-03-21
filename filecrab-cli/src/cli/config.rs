@@ -1,7 +1,7 @@
-use crate::{error::Error, Result};
+use crate::{Result, error::Error};
 use std::{mem, path::PathBuf, vec};
 
-use inquire::{validator::Validation, Confirm, CustomUserError, InquireError, Select, Text};
+use inquire::{Confirm, CustomUserError, InquireError, Select, Text, validator::Validation};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 

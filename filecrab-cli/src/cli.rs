@@ -1,18 +1,18 @@
 mod config;
 
-use crate::{cli::config::Instance, error::Error, Result};
-use age::{secrecy::SecretString, Decryptor, Encryptor};
+use crate::{Result, cli::config::Instance, error::Error};
+use age::{Decryptor, Encryptor, secrecy::SecretString};
 use anstyle::AnsiColor;
 use arboard::Clipboard;
-use clap::{builder::Styles, Parser, Subcommand};
+use clap::{Parser, Subcommand, builder::Styles};
 use config::Config;
 use file_format::FileFormat;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use inquire::Confirm;
 use reqwest::{
-    multipart::{Form, Part},
     Client,
+    multipart::{Form, Part},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -495,11 +495,15 @@ impl Cli {
         // Copies the command and the text to the clipboard.
         if let Some(command) = command {
             clipboard.set_text(format!("{command} {text}"))?;
-            println!("The resulting command has now been copied to your clipboard, share it before the program exits!");
+            println!(
+                "The resulting command has now been copied to your clipboard, share it before the program exits!"
+            );
         } else {
             // Copies the text to the clipboard.
             clipboard.set_text(text)?;
-            println!("The text has now been copied to your clipboard, share it before the program exits!");
+            println!(
+                "The text has now been copied to your clipboard, share it before the program exits!"
+            );
         }
 
         // Prompts the user to press enter to exit.
