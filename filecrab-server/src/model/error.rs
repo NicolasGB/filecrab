@@ -12,7 +12,7 @@ pub enum ModelManagerError {
     S3Error(#[from] S3Error),
 
     //SurrealDB
-    #[error("error connecting to new database: {0}")]
+    #[error("error connecting to new surrealdb database: {0}")]
     NewDB(#[source] surrealdb::Error),
     #[error("error setting namespace: {ns} and database: {db}")]
     SetUseNSandDb {
@@ -22,14 +22,14 @@ pub enum ModelManagerError {
     },
 
     #[cfg(not(feature = "rocksdb"))]
-    #[error("error signing in the database")]
+    #[error("error signing in the database: {0}")]
     SignIn(#[source] surrealdb::Error),
 
-    #[error("error defining table")]
+    #[error("error defining table: {0}")]
     CouldNotDefineTable(#[source] surrealdb::Error),
-    #[error("error setting index")]
+    #[error("error setting index: {0}")]
     CouldNotSetTableIndex(#[source] surrealdb::Error),
-    #[error("error using take method on surrealdb result")]
+    #[error("error using take method on surrealdb result {0}")]
     TakeError(#[source] surrealdb::Error),
 
     //Assets

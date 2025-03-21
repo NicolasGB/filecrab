@@ -32,7 +32,7 @@ tracing-subscriber = { workspace = true }
 
 thiserror = { workspace = true }
 
-surrealdb = { version = "2" }
+surrealdb = { version = "2", features = ["protocol-http", "protocol-ws"] }
 rust-s3 = { version = "0.35", features = ["with-tokio"] }
 chrono = "0.4"
 
