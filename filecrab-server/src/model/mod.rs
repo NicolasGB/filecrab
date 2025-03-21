@@ -8,28 +8,22 @@ pub use error::{ModelManagerError, Result};
 
 use axum::{BoxError, body::Bytes};
 use futures::{Stream, TryStreamExt};
-use surrealdb::Surreal;
+
+#[cfg(not(feature = "rocksdb"))]
+use surrealdb::opt::auth::Namespace;
+#[cfg(not(feature = "rocksdb"))]
+use surrealdb::opt::auth::Root;
+
+use surrealdb::{
+    Surreal,
+    engine::any::{self, Any},
+};
 use tokio_util::io::StreamReader;
 
 use crate::config::config;
 use s3::{Bucket, BucketConfiguration, Region, creds::Credentials, request::ResponseDataStream};
 
-#[cfg(not(feature = "rocksdb"))]
-/// If the feature rocksdb is not enabled, use a websocket connection
-/// This is the default behaviour.
-type Endpoint = surrealdb::engine::remote::ws::Ws;
-
-#[cfg(feature = "rocksdb")]
-/// If the feature rocksdb is enabled , use rocksdb as engine
-type Endpoint = surrealdb::engine::local::RocksDb;
-
-#[cfg(not(feature = "rocksdb"))]
-/// If the feature rocksdb is not enabled, the connection type is based on a client
-type SurrealConnection = Surreal<surrealdb::engine::remote::ws::Client>;
-
-#[cfg(feature = "rocksdb")]
-/// If the feature rocksdb is enabled, the connection type is based directly on the embedded db.
-type SurrealConnection = Surreal<surrealdb::engine::local::Db>;
+type SurrealConnection = Surreal<Any>;
 
 #[derive(Debug, Clone)]
 pub struct ModelManager {
@@ -52,18 +46,28 @@ impl ModelManager {
     /// it
     async fn connect_db() -> Result<SurrealConnection> {
         //SurrealDB
-        let db = Surreal::new::<Endpoint>(&config().DB_HOST_OR_PATH)
+        let db = any::connect(&config().DB_HOST_OR_PATH)
             .await
             .map_err(ModelManagerError::NewDB)?;
 
+        // Sign in when not on rocksdb
         #[cfg(not(feature = "rocksdb"))]
-        let _ = db
-            .signin(surrealdb::opt::auth::Root {
+        if &config().DB_USER == "root" {
+            db.signin(Root {
                 username: &config().DB_USER,
                 password: &config().DB_PASSWORD,
             })
             .await
             .map_err(ModelManagerError::SignIn)?;
+        } else {
+            db.signin(Namespace {
+                namespace: &config().DB_NS,
+                username: &config().DB_USER,
+                password: &config().DB_PASSWORD,
+            })
+            .await
+            .map_err(ModelManagerError::SignIn)?;
+        }
 
         //Set DB from config
         db.use_ns(&config().DB_NS)
@@ -76,14 +80,16 @@ impl ModelManager {
             })?;
 
         // Create the assets table
-        db.query("DEFINE TABLE asset")
+        db.query("DEFINE TABLE IF NOT EXISTS asset")
             .await
             .map_err(ModelManagerError::CouldNotDefineTable)?;
 
         // Set the search index in memo_id asset column
-        db.query("DEFINE INDEX fileMemoIdUnique ON TABLE asset COLUMNS memo_id UNIQUE")
-            .await
-            .map_err(ModelManagerError::CouldNotSetTableIndex)?;
+        db.query(
+            "DEFINE INDEX IF NOT EXISTS fileMemoIdUnique ON TABLE asset COLUMNS memo_id UNIQUE",
+        )
+        .await
+        .map_err(ModelManagerError::CouldNotSetTableIndex)?;
 
         Ok(db)
     }
