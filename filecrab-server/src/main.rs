@@ -5,29 +5,29 @@ mod web;
 
 use crate::{
     config::config,
-    model::{asset::Asset, text::Text, ModelManager},
+    model::{ModelManager, asset::Asset, text::Text},
     web::routes::routes,
 };
 
 pub use self::error::{Error, Result};
 
 use axum::{
-    body::Bytes,
-    http::{header, HeaderName, HeaderValue, Method},
     Router,
+    body::Bytes,
+    http::{HeaderName, HeaderValue, Method, header},
 };
 use clokwerk::{AsyncScheduler, TimeUnits};
 use std::{iter::once, time::Duration};
 use tokio::{net::TcpListener, signal};
 use tower::ServiceBuilder;
 use tower_http::{
+    LatencyUnit,
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
     map_response_body::MapResponseBodyLayer,
     sensitive_headers::SetSensitiveHeadersLayer,
     set_header::SetResponseHeaderLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
-    LatencyUnit,
 };
 use tracing::info;
 use tracing_subscriber::EnvFilter;

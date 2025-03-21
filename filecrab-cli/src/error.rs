@@ -41,7 +41,9 @@ pub enum Error {
     ReadStdIn(#[source] io::Error),
 
     // Pipe
-    #[error("You have not provided specific text nor piped anything. Run `filecrab paste -h` to understand the command.")]
+    #[error(
+        "You have not provided specific text nor piped anything. Run `filecrab paste -h` to understand the command."
+    )]
     NoPipedContent,
 
     // Files and Dirs
