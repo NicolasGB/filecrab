@@ -44,6 +44,7 @@ services:
 
   front:
     image: filecrab-front
+    # image: nicolasgoutte/filecrab-web:v0.4.0
     networks:
       filecrab:
     labels:

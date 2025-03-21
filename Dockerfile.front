@@ -15,7 +15,7 @@ FROM installer AS builder
 WORKDIR /app
 COPY . .
 # Enter the filecrab-web dir
-RUN cd filecrab-web && $HOME/.cargo/bin/dx bundle
+RUN cd filecrab-web && $HOME/.cargo/bin/dx bundle --platform web
 
 ## RUNTIME
 FROM nginxinc/nginx-unprivileged:stable-alpine AS runtime
@@ -25,7 +25,7 @@ USER root
 
 USER nginx
 
-COPY --from=builder /app/filecrab-web/dist /usr/share/nginx/html
+COPY --from=builder /app/filecrab-web/dist/public /usr/share/nginx/html
 COPY --from=builder /app/filecrab-web/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080
